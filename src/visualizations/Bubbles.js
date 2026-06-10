@@ -154,7 +154,7 @@ class Bubble {
         // Create radial gradient
         const gradient = this.createGradient(ctx);
         ctx.fillStyle = gradient;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; // White outline
+        ctx.strokeStyle = this.baseColor;
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
