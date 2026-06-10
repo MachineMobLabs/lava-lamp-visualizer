@@ -23,21 +23,21 @@ export class Particles {
         if (!freqData)
             return;
         const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+        const treble = audioInput.getFrequencyBand(100, 256) / 255;
         // Light trail effect
         this.p.fill(10, 10, 10, 5);
         this.p.rect(0, 0, this.p.width, this.p.height);
-        // Only spawn if there's audio
-        if (avgFreq > 0.02) {
+        // Much lower threshold, highly sensitive to treble
+        if (avgFreq > 0.003 || treble > 0.01) {
             const centerX = this.p.width / 2;
             const centerY = this.p.height / 2;
-            for (let i = 0; i < avgFreq * 20 * intensity; i++) {
-                if (this.particles.length < 500) {
+            for (let i = 0; i < Math.max(avgFreq * 30, treble * 50) * intensity + 1; i++) {
+                if (this.particles.length < 600) {
                     this.particles.push(new Particle(this.p, centerX, centerY));
                 }
             }
         }
-        else {
-            // Clear particles when silent
+        else if (this.particles.length === 0) {
             this.particles = [];
         }
         // Update and display

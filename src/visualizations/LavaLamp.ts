@@ -50,6 +50,8 @@ class Blob {
   private p: p5;
   x: number;
   y: number;
+  targetX: number;
+  targetY: number;
   vx: number;
   vy: number;
   size: number;
@@ -60,6 +62,8 @@ class Blob {
     this.p = p;
     this.x = x;
     this.y = y;
+    this.targetX = x;
+    this.targetY = y;
     this.vx = (Math.random() - 0.5) * 0.5;
     this.vy = (Math.random() - 0.5) * 0.5;
     this.size = 60 + Math.random() * 40;
@@ -68,24 +72,32 @@ class Blob {
   }
 
   update(avgFreq: number, intensity: number): void {
-    // Only move when there's audio
-    if (avgFreq > 0.02) {
-      // Movement
-      this.x += this.vx * intensity;
-      this.y += this.vy * intensity;
+    // Move when there's any audio signal
+    if (avgFreq > 0.003) {
+      // Add velocity based on audio
+      this.vx += (Math.random() - 0.5) * avgFreq * 0.3 * intensity;
+      this.vy += (Math.random() - 0.5) * avgFreq * 0.3 * intensity;
+
+      // Apply movement with smooth interpolation
+      this.targetX += this.vx * intensity;
+      this.targetY += this.vy * intensity;
 
       // Bounce off walls
-      if (this.x < 0 || this.x > this.p.width) this.vx *= -1;
-      if (this.y < 0 || this.y > this.p.height) this.vy *= -1;
+      if (this.targetX < 0 || this.targetX > this.p.width) this.vx *= -1;
+      if (this.targetY < 0 || this.targetY > this.p.height) this.vy *= -1;
 
       // Keep in bounds
-      this.x = Math.max(0, Math.min(this.p.width, this.x));
-      this.y = Math.max(0, Math.min(this.p.height, this.y));
+      this.targetX = Math.max(0, Math.min(this.p.width, this.targetX));
+      this.targetY = Math.max(0, Math.min(this.p.height, this.targetY));
+
+      // Smooth position interpolation
+      this.x = this.x * 0.85 + this.targetX * 0.15;
+      this.y = this.y * 0.85 + this.targetY * 0.15;
     }
 
-    // Size pulses with audio
-    const targetSize = this.baseSize + avgFreq * 60;
-    this.size = this.size * 0.9 + targetSize * 0.1;
+    // Size highly responsive to audio - smooth interpolation
+    const targetSize = this.baseSize + avgFreq * 100 + Math.pow(avgFreq, 0.5) * 40;
+    this.size = this.size * 0.8 + targetSize * 0.2;
   }
 
   display(avgFreq: number): void {

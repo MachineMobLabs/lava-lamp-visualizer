@@ -23,24 +23,26 @@ export class InkDrift {
         if (!freqData)
             return;
         const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+        const bass = audioInput.getFrequencyBand(0, 40) / 255;
+        const treble = audioInput.getFrequencyBand(100, 256) / 255;
         // Light trail effect
         this.p.fill(10, 10, 10, 15);
         this.p.rect(0, 0, this.p.width, this.p.height);
-        // Only spawn if there's audio
-        if (avgFreq > 0.02) {
-            if (Math.random() < 0.3) {
+        // Much lower threshold, spawn on treble for responsiveness
+        if (avgFreq > 0.003 || treble > 0.01) {
+            const spawnChance = 0.2 + treble * 0.4;
+            if (Math.random() < spawnChance) {
                 const centerX = this.p.width / 2;
                 const centerY = this.p.height / 2;
                 this.trails.push(new Trail(this.p, centerX + (Math.random() - 0.5) * 200, centerY + (Math.random() - 0.5) * 200, Math.random() * 360));
             }
         }
-        else {
-            // Clear trails when silent
+        else if (this.trails.length === 0) {
             this.trails = [];
         }
         // Update and display
         for (let i = this.trails.length - 1; i >= 0; i--) {
-            this.trails[i].update(avgFreq, intensity);
+            this.trails[i].update(avgFreq, bass, treble, intensity);
             this.trails[i].display();
             if (this.trails[i].isDead()) {
                 this.trails.splice(i, 1);
@@ -107,12 +109,15 @@ class Trail {
         this.hue = hue;
         this.size = 5;
     }
-    update(avgFreq, intensity) {
+    update(avgFreq, bass, treble, intensity) {
+        // Smooth velocity based on pitch (treble = faster, bass = slower/larger)
+        this.vx = this.vx * 0.9 + (treble - 0.5) * 3 * intensity * 0.1;
+        this.vy = this.vy * 0.9 + (bass - 0.5) * 2 * intensity * 0.1;
         this.x += this.vx * intensity;
         this.y += this.vy * intensity;
         this.life -= 0.008;
-        this.size *= 0.98;
-        this.size += avgFreq * 20;
+        // Size responsive to all frequencies
+        this.size = this.size * 0.95 + (5 + avgFreq * 30 + bass * 20) * 0.05;
     }
     display() {
         const h = this.hue;

@@ -18,27 +18,29 @@ export class Bubbles {
     if (!freqData) return;
 
     const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+    const bass = audioInput.getFrequencyBand(0, 40) / 255;
+    const treble = audioInput.getFrequencyBand(100, 256) / 255;
 
     // Light trail effect
     this.p.fill(10, 10, 10, 20);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Only spawn if there's audio
-    if (avgFreq > 0.02) {
-      const spawnCount = Math.floor(avgFreq * 50 * intensity);
+    // Much lower threshold, spawn aggressively
+    if (avgFreq > 0.005) {
+      const spawnCount = Math.floor(Math.max(bass, avgFreq) * 100 * intensity) + 2;
       for (let i = 0; i < spawnCount; i++) {
-        if (this.particles.length < 100) {
-          this.particles.push(new Particle(this.p));
+        if (this.particles.length < 150) {
+          this.particles.push(new Particle(this.p, treble));
         }
       }
-    } else {
-      // Clear particles when silent
+    } else if (this.particles.length === 0) {
+      // Clear only if no particles remain
       this.particles = [];
     }
 
     // Update and display
     for (let i = this.particles.length - 1; i >= 0; i--) {
-      this.particles[i].update(avgFreq, intensity);
+      this.particles[i].update(avgFreq, bass, treble, intensity);
       this.particles[i].display();
 
       if (this.particles[i].isDead()) {
@@ -58,23 +60,30 @@ class Particle {
   hue: number;
   life: number;
 
-  constructor(p: p5) {
+  constructor(p: p5, treble: number) {
     this.p = p;
     this.x = p.random(p.width);
     this.y = p.height + 20;
     this.vx = (p.random() - 0.5) * 1.5;
-    this.vy = -p.random() * 2;
+    this.vy = -p.random() * (2 + treble * 3);
     this.size = p.random() * 30 + 10;
     this.hue = p.random() * 60 + 20;
     this.life = 1;
   }
 
-  update(avgFreq: number, intensity: number): void {
+  update(avgFreq: number, bass: number, treble: number, intensity: number): void {
+    // Smooth velocity interpolation for responsive movement
+    this.vx = this.vx * 0.95 + (treble - 0.5) * 1.5 * intensity * 0.05;
+    this.vy = this.vy * 0.98 + (-bass * 2) * 0.02;
+
     this.x += this.vx;
     this.y += this.vy * (1 + intensity);
     this.vy *= 0.98;
     this.life -= 0.005;
-    this.size += avgFreq * 10 - 3;
+
+    // Size highly responsive - smooth interpolation
+    const targetSize = 10 + avgFreq * 20 + treble * 30;
+    this.size = this.size * 0.9 + targetSize * 0.1;
   }
 
   display(): void {
