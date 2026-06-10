@@ -140,7 +140,7 @@ class Bubble {
     const rgbBase = this.getRgbValues(this.baseColor);
     const rgbAccent = this.getRgbValues(this.accentColor); // White
 
-    const alphas = [0.8, 0.6, 0.3, 0.15, 0.05];
+    const alphas = [0.2, 0.15, 0.25, 0.35, 0.15];
     const colorStops = [0, 0.25, 0.5, 0.75, 1];
 
     const gradient = ctx.createRadialGradient(
