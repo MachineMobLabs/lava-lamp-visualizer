@@ -105,6 +105,18 @@ class Particle {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "vx", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "vy", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
         this.p = p;
         this.x = x;
         this.y = y;
@@ -113,24 +125,40 @@ class Particle {
         this.size = p.random(3, 7);
     }
     update(bass, mid, treble, _freq, intensity, avgFreq) {
-        // Only move if there's audio
-        if (avgFreq > 0.05) {
-            // Move toward center on bass hits
-            const pullX = (this.p.width / 2 - this.x) * bass * 0.02 * intensity;
-            const pullY = (this.p.height / 2 - this.y) * bass * 0.02 * intensity;
-            // Drift with mid frequencies
-            const driftX = (mid - 0.5) * 2 * intensity;
-            const driftY = (treble - 0.5) * 2 * intensity;
-            this.x += pullX + driftX;
-            this.y += pullY + driftY;
-            // Keep in bounds
-            this.x = this.p.constrain(this.x, 10, this.p.width - 10);
-            this.y = this.p.constrain(this.y, 10, this.p.height - 10);
+        // Smooth velocity-based movement
+        const targetVx = (mid - 0.5) * 4 * intensity + bass * 2;
+        const targetVy = (treble - 0.5) * 3 * intensity;
+        this.vx = this.vx * 0.8 + targetVx * 0.2;
+        this.vy = this.vy * 0.8 + targetVy * 0.2;
+        // Subtle pull toward center on bass
+        const pullStrength = bass * 0.01 * intensity;
+        const dx = this.p.width / 2 - this.x;
+        const dy = this.p.height / 2 - this.y;
+        this.x += this.vx + dx * pullStrength;
+        this.y += this.vy + dy * pullStrength;
+        // Keep in bounds with damping
+        if (this.x < 10) {
+            this.x = 10;
+            this.vx *= -0.3;
         }
-        else {
-            // Slowly return to base position when silent
-            this.x += (this.baseX - this.x) * 0.05;
-            this.y += (this.baseY - this.y) * 0.05;
+        if (this.x > this.p.width - 10) {
+            this.x = this.p.width - 10;
+            this.vx *= -0.3;
+        }
+        if (this.y < 10) {
+            this.y = 10;
+            this.vy *= -0.3;
+        }
+        if (this.y > this.p.height - 10) {
+            this.y = this.p.height - 10;
+            this.vy *= -0.3;
+        }
+        // Gradually return to base when silent
+        if (avgFreq < 0.02) {
+            this.x = this.x * 0.96 + this.baseX * 0.04;
+            this.y = this.y * 0.96 + this.baseY * 0.04;
+            this.vx *= 0.9;
+            this.vy *= 0.9;
         }
     }
     display(avgFreq) {

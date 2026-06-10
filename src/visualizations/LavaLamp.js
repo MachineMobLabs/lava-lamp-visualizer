@@ -97,23 +97,27 @@ class Blob {
         this.id = id;
     }
     display(avgFreq, bass, mid, freq, intensity) {
-        // Position pulls toward center based on bass (gravity effect)
-        const pull = bass * 0.3 + avgFreq * 0.1;
-        this.x = this.baseX * (1 - pull * 0.5) + this.p.width / 2 * pull * 0.5;
-        this.y = this.baseY * (1 - pull * 0.5) + this.p.height / 2 * pull * 0.5;
-        // Size DIRECTLY tied to audio
-        const baseSize = 60 + mid * 80;
-        const sizeBoost = freq * 100 * intensity;
+        // Smooth position pulls with easing
+        const pull = (bass * 0.4 + avgFreq * 0.15) * intensity;
+        const targetX = this.baseX * (1 - pull * 0.3) + this.p.width / 2 * pull * 0.3;
+        const targetY = this.baseY * (1 - pull * 0.3) + this.p.height / 2 * pull * 0.3;
+        this.x = this.x * 0.85 + targetX * 0.15;
+        this.y = this.y * 0.85 + targetY * 0.15;
+        // Size smoothly modulated by audio
+        const baseSize = 70 + mid * 60 + avgFreq * 40;
+        const sizeBoost = freq * 80 + bass * 50;
         const size = baseSize + sizeBoost;
-        // Draw gooey blob with deformation based on frequency
-        this.p.fill(255, 140 - bass * 100, 0, 200);
+        // Draw gooey blob with smooth deformation
+        const colorMod = Math.max(0, 1 - bass * 0.8);
+        this.p.fill(255, 140 * colorMod, 0, 220);
         this.p.noStroke();
         this.p.beginShape();
-        const segments = 30;
+        const segments = 40;
         for (let i = 0; i < segments; i++) {
             const angle = (this.p.TWO_PI / segments) * i;
-            // Deformation directly from frequency data
-            const deform = Math.sin(angle * 4 + this.id) * freq * 40 * intensity;
+            // Smooth deformation from audio
+            const deform = Math.sin(angle * 3 + this.id) * freq * 30 * intensity +
+                Math.sin(angle * 2) * avgFreq * 15;
             const r = size / 2 + deform;
             const px = this.x + Math.cos(angle) * r;
             const py = this.y + Math.sin(angle) * r;

@@ -23,32 +23,31 @@ export class Bubbles {
         if (!freqData)
             return;
         const avgFreq = audioInput.getAverageFrequency() / 255;
-        const bass = audioInput.getFrequencyBand(0, 8) / 255;
-        const mid = audioInput.getFrequencyBand(8, 20) / 255;
-        const treble = audioInput.getFrequencyBand(20, 32) / 255;
-        // Only spawn if there's meaningful audio
-        if (avgFreq > 0.05) {
-            const particleCount = Math.floor(bass * 8 * intensity);
-            for (let i = 0; i < particleCount; i++) {
-                const x = this.p.random(this.p.width);
-                const y = this.p.height + 10;
-                const size = 20 + treble * 60;
-                this.particles.push(new Particle(this.p, x, y, size, treble));
-            }
+        const peak = audioInput.getPeakFrequency();
+        const bass = audioInput.getFrequencyBand(0, 20) / 255;
+        const mid = audioInput.getFrequencyBand(20, 80) / 255;
+        const treble = audioInput.getFrequencyBand(80, 256) / 255;
+        // Spawn continuously based on audio energy (much more aggressive)
+        const spawns = Math.floor((avgFreq + peak) * 15 * intensity);
+        for (let i = 0; i < spawns; i++) {
+            const x = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
+            const y = this.p.height;
+            const size = 15 + peak * 50;
+            this.particles.push(new Particle(this.p, x, y, size));
         }
         // Update and display particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.update(bass, mid, treble, intensity);
-            p.display();
-            if (p.isDead()) {
+            const particle = this.particles[i];
+            particle.update(bass, mid, treble, intensity, avgFreq);
+            particle.display();
+            if (particle.isDead()) {
                 this.particles.splice(i, 1);
             }
         }
     }
 }
 class Particle {
-    constructor(p, x, y, size, treble) {
+    constructor(p, x, y, size) {
         Object.defineProperty(this, "p", {
             enumerable: true,
             configurable: true,
@@ -85,7 +84,7 @@ class Particle {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "treble", {
+        Object.defineProperty(this, "vx", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -95,31 +94,35 @@ class Particle {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.life = 200;
-        this.maxLife = 200;
-        this.treble = treble;
+        this.life = 250;
+        this.maxLife = 250;
+        this.vx = p.random(-0.5, 0.5);
     }
-    update(bass, mid, treble, intensity) {
-        // Rise speed driven by bass
-        this.y -= bass * 5 * intensity;
-        // Drift driven by mid frequencies
-        this.x += (mid - 0.5) * 3 * intensity;
-        // Size modulated by treble
-        this.size = 10 + treble * 60;
-        // Fade based on life
-        this.life -= 1;
+    update(bass, mid, treble, intensity, avgFreq) {
+        // Smooth rise speed with easing
+        const riseSpeed = 1 + bass * 8 + avgFreq * 4;
+        this.y -= riseSpeed;
+        // Drift with smoothing
+        this.vx = this.vx * 0.9 + (mid - 0.5) * 2 * intensity * 0.1;
+        this.x += this.vx;
+        // Size breathes with audio
+        this.size = 12 + treble * 50 + avgFreq * 20;
+        // Fade out
+        this.life -= 0.8;
     }
     display() {
-        const alpha = (this.life / this.maxLife) * 220;
-        const color = this.treble > 0.5 ? [200, 100, 200] : [255, 140, 0]; // Purple if high treble, orange if low
-        this.p.fill(color[0], color[1], color[2], alpha);
+        const alpha = (this.life / this.maxLife) * 240;
+        const r = 255;
+        const g = 140;
+        const b = 0;
+        this.p.fill(r, g, b, alpha);
         this.p.noStroke();
         this.p.ellipse(this.x, this.y, this.size, this.size);
         // Glow
-        this.p.fill(color[0], color[1], color[2], alpha * 0.4);
-        this.p.ellipse(this.x, this.y, this.size * 1.5, this.size * 1.5);
+        this.p.fill(r, g, b, alpha * 0.5);
+        this.p.ellipse(this.x, this.y, this.size * 1.6, this.size * 1.6);
     }
     isDead() {
-        return this.life <= 0 || this.y < -50;
+        return this.life <= 0 || this.y < -100;
     }
 }

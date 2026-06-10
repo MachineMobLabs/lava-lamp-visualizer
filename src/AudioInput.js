@@ -91,8 +91,18 @@ export class AudioInput {
         const data = this.getFrequencyData();
         if (!data)
             return 0;
-        const bandData = data.slice(start, end);
-        return bandData.reduce((a, b) => a + b, 0) / bandData.length;
+        let sum = 0;
+        const length = Math.min(end, data.length) - start;
+        for (let i = start; i < Math.min(end, data.length); i++) {
+            sum += data[i];
+        }
+        return length > 0 ? sum / length : 0;
+    }
+    getPeakFrequency() {
+        const data = this.getFrequencyData();
+        if (!data)
+            return 0;
+        return Math.max(...data) / 255;
     }
     stop() {
         if (this.stream) {
