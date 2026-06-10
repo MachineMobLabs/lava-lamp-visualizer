@@ -9,11 +9,11 @@ import './App.css';
 
 type VisualizationMode = 'lava' | 'bubbles' | 'ink' | 'particles';
 
+const INTENSITY = 0.7;
+
 export default function App() {
   const p5ContainerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<VisualizationMode>('lava');
-  const intensityRef = useRef(0.7);
-  const modeRef = useRef<VisualizationMode>('lava');
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,40 +57,12 @@ export default function App() {
       };
 
       p.draw = function () {
-        // Validate visualization matches current mode every frame
-        const currentVizType = visualizationRef.current?.constructor.name;
-        const expectedType =
-          modeRef.current === 'lava' ? 'LavaLamp' :
-          modeRef.current === 'bubbles' ? 'Bubbles' :
-          modeRef.current === 'ink' ? 'InkDrift' :
-          'Particles';
-
-        if (currentVizType !== expectedType && p5InstanceRef.current) {
-          // Visualization is wrong, recreate it
-          let newViz: LavaLamp | Bubbles | InkDrift | Particles;
-          switch (modeRef.current) {
-            case 'lava':
-              newViz = new LavaLamp(p5InstanceRef.current);
-              break;
-            case 'bubbles':
-              newViz = new Bubbles(p5InstanceRef.current);
-              break;
-            case 'ink':
-              newViz = new InkDrift(p5InstanceRef.current);
-              break;
-            case 'particles':
-              newViz = new Particles(p5InstanceRef.current);
-              break;
-          }
-          visualizationRef.current = newViz;
-        }
-
         p.background(10, 10, 10, 20); // Slight trail effect
         p.fill(10, 10, 10, 20);
         p.rect(0, 0, p.width, p.height);
 
         if (visualizationRef.current) {
-          visualizationRef.current.draw(intensityRef.current);
+          visualizationRef.current.draw(INTENSITY);
         }
       };
 
@@ -132,11 +104,6 @@ export default function App() {
     }
 
     visualizationRef.current = newViz;
-    modeRef.current = mode;
-  }, [mode]);
-
-  useEffect(() => {
-    modeRef.current = mode;
   }, [mode]);
 
   return (
@@ -152,22 +119,6 @@ export default function App() {
         </div>
 
         {error && <div className="error">{error}</div>}
-
-        <div className="slider-group">
-          <label>Intensity</label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            defaultValue={0.7}
-            onChange={(e) => {
-              const newIntensity = parseFloat(e.target.value);
-              intensityRef.current = newIntensity;
-              // Don't call setIntensity to avoid re-renders
-            }}
-          />
-        </div>
 
         <div className="mode-selector">
           <label>Mode</label>
