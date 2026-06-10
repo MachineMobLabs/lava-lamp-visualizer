@@ -32,12 +32,12 @@ export class Bubbles {
 
   private createBubbles(max: number): void {
     const colors = [
-      'rgba(75,0,130,1)',
-      'rgba(25,25,112,1)',
-      'rgba(143,188,143,1)',
-      'rgba(47,79,79,1)',
-      'rgba(0,139,139,1)',
-      'rgba(139,0,0,1)',
+      'rgba(255, 182, 193, 1)',  // soft pink
+      'rgba(230, 190, 255, 1)',  // soft lavender
+      'rgba(200, 230, 255, 1)',  // soft blue
+      'rgba(220, 237, 200, 1)',  // soft sage
+      'rgba(255, 218, 185, 1)',  // soft peach
+      'rgba(176, 224, 230, 1)',  // soft mint
     ];
 
     for (let i = 0; i < max; i++) {
@@ -48,7 +48,7 @@ export class Bubbles {
       const accentColor = 'rgba(248,248,255,1)';
 
       this.bubbles.push(
-        new Bubble(x, y, radius, baseColor, accentColor, 1, this.p)
+        new Bubble(x, y, radius, baseColor, accentColor, 2, this.p)
       );
     }
   }
@@ -124,7 +124,7 @@ class Bubble {
     const gradient = this.createGradient(ctx);
 
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = this.baseColor;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; // White outline
     ctx.lineWidth = this.lineWidth;
 
     ctx.beginPath();
