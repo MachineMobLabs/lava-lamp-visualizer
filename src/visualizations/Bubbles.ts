@@ -140,8 +140,8 @@ class Bubble {
     const rgbBase = this.getRgbValues(this.baseColor);
     const rgbAccent = this.getRgbValues(this.accentColor);
 
-    const alphas = [0.3, 0.2, 0.08, 0.15, 0.3];
-    const colorStops = [0, 0.25, 0.5, 0.85, 1];
+    const alphas = [0.15, 0.12, 0.05, 0.08, 0.15];
+    const colorStops = [0, 0.33, 0.67, 0.9, 1];
 
     const gradient = ctx.createRadialGradient(
       this.x,
@@ -158,8 +158,6 @@ class Bubble {
 
       if (i === alphas.length - 1 || i === alphas.length - 2) {
         rgb = rgbAccent;
-        // Soften the accent highlight
-        alpha = alpha * 0.5;
       } else {
         rgb = rgbBase;
       }
