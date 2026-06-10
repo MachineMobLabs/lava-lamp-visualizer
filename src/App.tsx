@@ -112,13 +112,10 @@ export default function App() {
 
       <div className="controls">
         <div className="header">
-          <h1>Lava Lamp.</h1>
-          {!isInitialized && (
-            <button className="mic-button" onClick={initializeAudio}>
-              🎤 Enable Microphone
-            </button>
-          )}
-          {isInitialized && <span className="status">🎤 Listening</span>}
+          <h1>Lava Lamp</h1>
+          <button className="mic-button" onClick={initializeAudio}>
+            {!isInitialized ? '🎤 Enable Microphone' : '🎤 Disable Microphone'}
+          </button>
         </div>
 
         {error && <div className="error">{error}</div>}
