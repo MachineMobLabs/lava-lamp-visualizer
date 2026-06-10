@@ -19,14 +19,22 @@ export default function App() {
   const visualizationRef = useRef<LavaLamp | Bubbles | InkDrift | Particles | null>(null);
   const p5InstanceRef = useRef<p5 | null>(null);
 
-  const initializeAudio = async () => {
-    try {
-      await audioInput.initialize();
-      setIsInitialized(true);
+  const toggleAudio = async () => {
+    if (isInitialized) {
+      // Disable microphone
+      audioInput.stop();
+      setIsInitialized(false);
       setError(null);
-    } catch (err) {
-      setError('Microphone access denied. Please grant permission to use this app.');
-      console.error(err);
+    } else {
+      // Enable microphone
+      try {
+        await audioInput.initialize();
+        setIsInitialized(true);
+        setError(null);
+      } catch (err) {
+        setError('Microphone access denied. Please grant permission to use this app.');
+        console.error(err);
+      }
     }
   };
 
@@ -113,7 +121,7 @@ export default function App() {
       <div className="controls">
         <div className="header">
           <h1>Lava Lamp</h1>
-          <button className="mic-button" onClick={initializeAudio}>
+          <button className="mic-button" onClick={toggleAudio}>
             {!isInitialized ? '🎤 Enable Microphone' : '🎤 Disable Microphone'}
           </button>
         </div>
