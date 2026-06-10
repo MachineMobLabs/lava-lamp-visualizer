@@ -112,7 +112,8 @@ export default function App() {
 
       <div className="controls">
         <div className="header">
-          <h1>Lava Lamp</h1>
+          <h1>Visualizer:</h1>
+          <p>Works solo or with your mic. Click <i>Enable Microphone</i> to watch your audio come to life.</p>
           <button className="mic-button" onClick={toggleAudio}>
             {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
           </button>
