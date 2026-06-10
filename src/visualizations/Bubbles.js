@@ -166,7 +166,7 @@ class Bubble {
     createGradient(ctx) {
         const rgbBase = this.getRgbValues(this.baseColor);
         const rgbAccent = this.getRgbValues(this.accentColor);
-        const alphas = [0.8, 0.6, 0.3, 0.5, 0.8];
+        const alphas = [0.5, 0.4, 0.15, 0.3, 0.5];
         const colorStops = [0, 0.25, 0.5, 0.85, 1];
         const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x - this.radius / 2, this.y - this.radius / 2, 0);
         for (let i = 0; i < alphas.length; i++) {
