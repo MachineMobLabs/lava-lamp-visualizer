@@ -48,7 +48,7 @@ export class Bubbles {
       const accentColor = 'rgba(248,248,255,1)';
 
       this.bubbles.push(
-        new Bubble(x, y, radius, baseColor, accentColor, 2, this.p)
+        new Bubble(x, y, radius, baseColor, accentColor, 1, this.p)
       );
     }
   }

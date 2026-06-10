@@ -47,7 +47,7 @@ export class Bubbles {
             const radius = Math.floor(Math.random() * 50) + 15;
             const baseColor = colors[Math.floor(Math.random() * colors.length)];
             const accentColor = 'rgba(248,248,255,1)';
-            this.bubbles.push(new Bubble(x, y, radius, baseColor, accentColor, 2, this.p));
+            this.bubbles.push(new Bubble(x, y, radius, baseColor, accentColor, 1, this.p));
         }
     }
 }
