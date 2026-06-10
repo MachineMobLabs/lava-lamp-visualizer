@@ -26,11 +26,17 @@ export class InkDrift {
         // Light trail effect
         this.p.fill(10, 10, 10, 15);
         this.p.rect(0, 0, this.p.width, this.p.height);
-        // Spawn trails
-        if (Math.random() < 0.3) {
-            const centerX = this.p.width / 2;
-            const centerY = this.p.height / 2;
-            this.trails.push(new Trail(this.p, centerX + (Math.random() - 0.5) * 200, centerY + (Math.random() - 0.5) * 200, Math.random() * 360));
+        // Only spawn if there's audio
+        if (avgFreq > 0.02) {
+            if (Math.random() < 0.3) {
+                const centerX = this.p.width / 2;
+                const centerY = this.p.height / 2;
+                this.trails.push(new Trail(this.p, centerX + (Math.random() - 0.5) * 200, centerY + (Math.random() - 0.5) * 200, Math.random() * 360));
+            }
+        }
+        else {
+            // Clear trails when silent
+            this.trails = [];
         }
         // Update and display
         for (let i = this.trails.length - 1; i >= 0; i--) {

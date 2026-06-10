@@ -23,14 +23,19 @@ export class Particles {
     this.p.fill(10, 10, 10, 5);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Spawn particles from center based on audio
-    const centerX = this.p.width / 2;
-    const centerY = this.p.height / 2;
+    // Only spawn if there's audio
+    if (avgFreq > 0.02) {
+      const centerX = this.p.width / 2;
+      const centerY = this.p.height / 2;
 
-    for (let i = 0; i < avgFreq * 20 * intensity; i++) {
-      if (this.particles.length < 500) {
-        this.particles.push(new Particle(this.p, centerX, centerY));
+      for (let i = 0; i < avgFreq * 20 * intensity; i++) {
+        if (this.particles.length < 500) {
+          this.particles.push(new Particle(this.p, centerX, centerY));
+        }
       }
+    } else {
+      // Clear particles when silent
+      this.particles = [];
     }
 
     // Update and display

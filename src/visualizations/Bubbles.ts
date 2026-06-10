@@ -23,12 +23,17 @@ export class Bubbles {
     this.p.fill(10, 10, 10, 20);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Spawn bubbles aggressively
-    const spawnCount = Math.max(5, Math.floor(avgFreq * 50 * intensity));
-    for (let i = 0; i < spawnCount; i++) {
-      if (this.particles.length < 100) {
-        this.particles.push(new Particle(this.p));
+    // Only spawn if there's audio
+    if (avgFreq > 0.02) {
+      const spawnCount = Math.floor(avgFreq * 50 * intensity);
+      for (let i = 0; i < spawnCount; i++) {
+        if (this.particles.length < 100) {
+          this.particles.push(new Particle(this.p));
+        }
       }
+    } else {
+      // Clear particles when silent
+      this.particles = [];
     }
 
     // Update and display

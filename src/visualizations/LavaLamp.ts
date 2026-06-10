@@ -68,17 +68,20 @@ class Blob {
   }
 
   update(avgFreq: number, intensity: number): void {
-    // Movement
-    this.x += this.vx * intensity;
-    this.y += this.vy * intensity;
+    // Only move when there's audio
+    if (avgFreq > 0.02) {
+      // Movement
+      this.x += this.vx * intensity;
+      this.y += this.vy * intensity;
 
-    // Bounce off walls
-    if (this.x < 0 || this.x > this.p.width) this.vx *= -1;
-    if (this.y < 0 || this.y > this.p.height) this.vy *= -1;
+      // Bounce off walls
+      if (this.x < 0 || this.x > this.p.width) this.vx *= -1;
+      if (this.y < 0 || this.y > this.p.height) this.vy *= -1;
 
-    // Keep in bounds
-    this.x = Math.max(0, Math.min(this.p.width, this.x));
-    this.y = Math.max(0, Math.min(this.p.height, this.y));
+      // Keep in bounds
+      this.x = Math.max(0, Math.min(this.p.width, this.x));
+      this.y = Math.max(0, Math.min(this.p.height, this.y));
+    }
 
     // Size pulses with audio
     const targetSize = this.baseSize + avgFreq * 60;
