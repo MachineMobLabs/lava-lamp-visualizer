@@ -26,9 +26,9 @@ export class LavaLamp {
       const y = Math.random() * p.height;
       const vx = (Math.random() * 2) - 1; // Reduced from 8 to 2 for slower motion
       const vy = (Math.random() * 2) - 1; // Reduced from 8 to 2
-      const size = Math.floor(Math.random() * 80) + 80; // 2x larger: was 40+40, now 80+80
+      const baseSize = Math.floor(Math.random() * 80) + 80; // 2x larger: was 40+40, now 80+80
 
-      this.particles.push({ x, y, vx, vy, size });
+      this.particles.push({ x, y, vx, vy, size: baseSize, baseSize });
     }
   }
 
@@ -40,11 +40,21 @@ export class LavaLamp {
     // Clear temp canvas
     this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
 
-    // Get audio frequency data for responsiveness
-    const avgFreq = audioInput.getAverageFrequency() / 255;
+    // Get audio frequency data with high sensitivity (captures whispers and loud sounds)
+    const freqData = audioInput.getFrequencyData();
+    let avgFreq = 0;
+
+    if (freqData) {
+      // Ultra-sensitive to low volumes - use normalized average
+      avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+      // Apply non-linear scaling to boost sensitivity to quiet sounds
+      avgFreq = Math.pow(avgFreq, 0.5); // Square root makes whispers more visible
+    }
 
     // Update particle positions with intensity and audio affecting speed
-    const speedMult = (intensity * 0.5 + 0.5) * (1 + avgFreq * 0.5); // Audio boosts speed
+    // Audio dramatically boosts speed - responds to whispers and loud music
+    const speedMult = (intensity * 0.5 + 0.5) * (1 + avgFreq * 2.5); // Much higher audio multiplier
+
     for (let particle of this.particles) {
       particle.x += particle.vx * speedMult;
       particle.y += particle.vy * speedMult;
@@ -62,6 +72,11 @@ export class LavaLamp {
       if (particle.y < -particle.size) {
         particle.y = this.tempCanvas.height + particle.size;
       }
+
+      // Size pulses dramatically with audio - makes response very visible
+      // Ranges from baseSize to baseSize * 2.5 based on audio
+      const sizeMultiplier = 1 + avgFreq * 1.5;
+      particle.size = particle.baseSize * sizeMultiplier;
 
       // Draw radial gradient
       this.tempCtx.beginPath();
@@ -142,4 +157,5 @@ interface Particle {
   vx: number;
   vy: number;
   size: number;
+  baseSize: number;
 }
