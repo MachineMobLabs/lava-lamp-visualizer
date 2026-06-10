@@ -1,0 +1,175 @@
+import { useEffect, useRef, useState } from 'react';
+import p5 from 'p5';
+import { audioInput } from './AudioInput';
+import { LavaLamp } from './visualizations/LavaLamp';
+import { Bubbles } from './visualizations/Bubbles';
+import { InkDrift } from './visualizations/InkDrift';
+import { Particles } from './visualizations/Particles';
+import './App.css';
+
+type VisualizationMode = 'lava' | 'bubbles' | 'ink' | 'particles';
+
+export default function App() {
+  const p5ContainerRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<VisualizationMode>('lava');
+  const [intensity, setIntensity] = useState(0.7);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const visualizationRef = useRef<LavaLamp | Bubbles | InkDrift | Particles | null>(null);
+  const p5InstanceRef = useRef<p5 | null>(null);
+
+  const initializeAudio = async () => {
+    try {
+      await audioInput.initialize();
+      setIsInitialized(true);
+      setError(null);
+    } catch (err) {
+      setError('Microphone access denied. Please grant permission to use this app.');
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (!p5ContainerRef.current || !isInitialized) return;
+
+    const sketch = (p: p5) => {
+      p5InstanceRef.current = p;
+
+      p.setup = function () {
+        const container = p5ContainerRef.current;
+        if (!container) return;
+
+        const width = container.offsetWidth;
+        const height = container.offsetHeight;
+        p.createCanvas(width, height);
+        p.background(10, 10, 10);
+        p.smooth();
+
+        // Create initial visualization
+        visualizationRef.current = new LavaLamp(p);
+      };
+
+      p.draw = function () {
+        p.background(10, 10, 10, 20); // Slight trail effect
+        p.fill(10, 10, 10, 20);
+        p.rect(0, 0, p.width, p.height);
+
+        if (visualizationRef.current) {
+          visualizationRef.current.draw(intensity);
+        }
+      };
+
+      p.windowResized = function () {
+        const container = p5ContainerRef.current;
+        if (!container) return;
+        const width = container.offsetWidth;
+        const height = container.offsetHeight;
+        p.resizeCanvas(width, height);
+      };
+    };
+
+    const instance = new p5(sketch, p5ContainerRef.current);
+
+    return () => {
+      instance.remove();
+    };
+  }, [isInitialized]);
+
+  useEffect(() => {
+    if (!p5InstanceRef.current) return;
+
+    let newViz: LavaLamp | Bubbles | InkDrift | Particles;
+
+    // Create visualization based on mode
+    switch (mode) {
+      case 'lava':
+        newViz = new LavaLamp(p5InstanceRef.current);
+        break;
+      case 'bubbles':
+        newViz = new Bubbles(p5InstanceRef.current);
+        break;
+      case 'ink':
+        newViz = new InkDrift(p5InstanceRef.current);
+        break;
+      case 'particles':
+        newViz = new Particles(p5InstanceRef.current);
+        break;
+    }
+
+    visualizationRef.current = newViz;
+  }, [mode, isInitialized]);
+
+  useEffect(() => {
+    if (visualizationRef.current && 'setSpeed' in visualizationRef.current) {
+      (visualizationRef.current as any).setSpeed(intensity);
+    }
+  }, [intensity]);
+
+  return (
+    <div className="app">
+      <div className="canvas-container" ref={p5ContainerRef} />
+
+      <div className="controls">
+        <div className="header">
+          <h1>Lava Lamp</h1>
+          {!isInitialized && (
+            <button className="mic-button" onClick={initializeAudio}>
+              🎤 Enable Microphone
+            </button>
+          )}
+          {isInitialized && <span className="status">🎤 Listening</span>}
+        </div>
+
+        {error && <div className="error">{error}</div>}
+
+        <div className="slider-group">
+          <label>Intensity</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={intensity}
+            onChange={(e) => setIntensity(parseFloat(e.target.value))}
+            disabled={!isInitialized}
+          />
+        </div>
+
+        <div className="mode-selector">
+          <label>Mode</label>
+          <div className="mode-buttons">
+            <button
+              className={`mode-btn ${mode === 'lava' ? 'active' : ''}`}
+              onClick={() => setMode('lava')}
+              disabled={!isInitialized}
+            >
+              🌋 Lava
+            </button>
+            <button
+              className={`mode-btn ${mode === 'bubbles' ? 'active' : ''}`}
+              onClick={() => setMode('bubbles')}
+              disabled={!isInitialized}
+            >
+              ✨ Bubbles
+            </button>
+            <button
+              className={`mode-btn ${mode === 'ink' ? 'active' : ''}`}
+              onClick={() => setMode('ink')}
+              disabled={!isInitialized}
+            >
+              💧 Ink
+            </button>
+            <button
+              className={`mode-btn ${mode === 'particles' ? 'active' : ''}`}
+              onClick={() => setMode('particles')}
+              disabled={!isInitialized}
+            >
+              ✦ Particles
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
