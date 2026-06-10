@@ -46,7 +46,7 @@ export class Bubbles {
             const y = Math.random() * this.p.height;
             const radius = Math.floor(Math.random() * 50) + 15;
             const baseColor = colors[Math.floor(Math.random() * colors.length)];
-            const accentColor = 'rgba(255,255,255,0.3)';
+            const accentColor = 'rgba(255,255,255,1)'; // No longer used, but kept for compatibility
             this.bubbles.push(new Bubble(x, y, radius, baseColor, accentColor, 1, this.p));
         }
     }
@@ -165,19 +165,13 @@ class Bubble {
     }
     createGradient(ctx) {
         const rgbBase = this.getRgbValues(this.baseColor);
-        const rgbAccent = this.getRgbValues(this.accentColor);
         const alphas = [0.15, 0.12, 0.05, 0.08, 0.15];
         const colorStops = [0, 0.33, 0.67, 0.9, 1];
         const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x - this.radius / 2, this.y - this.radius / 2, 0);
         for (let i = 0; i < alphas.length; i++) {
-            let rgb;
-            let alpha = alphas[i];
-            if (i === alphas.length - 1 || i === alphas.length - 2) {
-                rgb = rgbAccent;
-            }
-            else {
-                rgb = rgbBase;
-            }
+            // Use only base color throughout for smooth, clean gradient
+            const rgb = rgbBase;
+            const alpha = alphas[i];
             const colorStr = `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
             gradient.addColorStop(colorStops[i], colorStr);
         }
