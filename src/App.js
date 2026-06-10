@@ -10,7 +10,6 @@ import './App.css';
 export default function App() {
     const p5ContainerRef = useRef(null);
     const [mode, setMode] = useState('lava');
-    const [intensity, setIntensity] = useState(0.7);
     const intensityRef = useRef(0.7);
     const modeRef = useRef('lava');
     const [isInitialized, setIsInitialized] = useState(false);
@@ -122,15 +121,9 @@ export default function App() {
         modeRef.current = mode;
     }, [mode]);
     useEffect(() => {
-        intensityRef.current = intensity;
-        if (visualizationRef.current && 'setSpeed' in visualizationRef.current) {
-            visualizationRef.current.setSpeed(intensity);
-        }
-    }, [intensity]);
-    useEffect(() => {
         modeRef.current = mode;
     }, [mode]);
-    return (_jsxs("div", { className: "app", children: [_jsx("div", { className: "canvas-container", ref: p5ContainerRef }), _jsxs("div", { className: "controls", children: [_jsxs("div", { className: "header", children: [_jsx("h1", { children: "Visualizer:" }), _jsx("p", { children: "Works solo or with your mic. Click enable mic to watch your audio come to life." }), _jsx("button", { className: "mic-button", onClick: toggleAudio, children: !isInitialized ? 'Enable Microphone' : 'Disable Microphone' })] }), error && _jsx("div", { className: "error", children: error }), _jsxs("div", { className: "slider-group", children: [_jsx("label", { children: "Intensity" }), _jsx("input", { type: "range", min: "0", max: "1", step: "0.01", defaultValue: 0.7, onChange: (e) => {
+    return (_jsxs("div", { className: "app", children: [_jsx("div", { className: "canvas-container", ref: p5ContainerRef }), _jsxs("div", { className: "controls", children: [_jsxs("div", { className: "header", children: [_jsx("h1", { children: "Lava Lamp" }), _jsx("button", { className: "mic-button", onClick: toggleAudio, children: !isInitialized ? 'Enable Microphone' : 'Disable Microphone' })] }), error && _jsx("div", { className: "error", children: error }), _jsxs("div", { className: "slider-group", children: [_jsx("label", { children: "Intensity" }), _jsx("input", { type: "range", min: "0", max: "1", step: "0.01", defaultValue: 0.7, onChange: (e) => {
                                     const newIntensity = parseFloat(e.target.value);
                                     intensityRef.current = newIntensity;
                                     // Don't call setIntensity to avoid re-renders

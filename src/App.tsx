@@ -12,7 +12,6 @@ type VisualizationMode = 'lava' | 'bubbles' | 'ink' | 'particles';
 export default function App() {
   const p5ContainerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<VisualizationMode>('lava');
-  const [intensity, setIntensity] = useState(0.7);
   const intensityRef = useRef(0.7);
   const modeRef = useRef<VisualizationMode>('lava');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -137,13 +136,6 @@ export default function App() {
   }, [mode]);
 
   useEffect(() => {
-    intensityRef.current = intensity;
-    if (visualizationRef.current && 'setSpeed' in visualizationRef.current) {
-      (visualizationRef.current as any).setSpeed(intensity);
-    }
-  }, [intensity]);
-
-  useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
 
@@ -153,8 +145,7 @@ export default function App() {
 
       <div className="controls">
         <div className="header">
-          <h1>Visualizer:</h1>
-          <p>Works solo or with your mic. Click enable mic to watch your audio come to life.</p>
+          <h1>Lava Lamp</h1>
           <button className="mic-button" onClick={toggleAudio}>
             {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
           </button>
