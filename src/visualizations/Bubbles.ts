@@ -138,9 +138,10 @@ class Bubble {
 
   private createGradient(ctx: CanvasRenderingContext2D): CanvasGradient {
     const rgbBase = this.getRgbValues(this.baseColor);
+    const rgbAccent = this.getRgbValues(this.accentColor); // White
 
-    const alphas = [0.15, 0.12, 0.05, 0.08, 0.15];
-    const colorStops = [0, 0.33, 0.67, 0.9, 1];
+    const alphas = [0.8, 0.6, 0.3, 0.15, 0.05];
+    const colorStops = [0, 0.25, 0.5, 0.75, 1];
 
     const gradient = ctx.createRadialGradient(
       this.x,
@@ -152,8 +153,15 @@ class Bubble {
     );
 
     for (let i = 0; i < alphas.length; i++) {
-      // Use only base color throughout for smooth, clean gradient
-      const rgb = rgbBase;
+      let rgb: { r: string; g: string; b: string };
+
+      // Center is white, edges fade to base color
+      if (i < 2) {
+        rgb = rgbAccent; // White in center
+      } else {
+        rgb = rgbBase; // Base color in rings
+      }
+
       const alpha = alphas[i];
       const colorStr = `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
       gradient.addColorStop(colorStops[i], colorStr);
