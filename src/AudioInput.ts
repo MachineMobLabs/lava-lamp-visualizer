@@ -24,8 +24,8 @@ export class AudioInput {
 
       // Create analyser
       this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = 256;
-      this.analyser.smoothingTimeConstant = 0.85;
+      this.analyser.fftSize = 512;
+      this.analyser.smoothingTimeConstant = 0.4;
 
       // Create microphone source
       this.microphoneSource = this.audioContext.createMediaStreamSource(this.stream);

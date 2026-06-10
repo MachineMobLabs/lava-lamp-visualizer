@@ -1,0 +1,5 @@
+{
+  "name": "lava-lamp-visualizer",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}

@@ -4,7 +4,6 @@ import { audioInput } from '../AudioInput';
 export class Particles {
   private p: p5;
   private particles: Particle[] = [];
-  private speed: number = 1;
 
   constructor(p: p5) {
     this.p = p;
@@ -12,7 +11,7 @@ export class Particles {
   }
 
   private initialize(): void {
-    const numParticles = 80;
+    const numParticles = 100;
     for (let i = 0; i < numParticles; i++) {
       const x = this.p.random(this.p.width);
       const y = this.p.random(this.p.height);
@@ -20,30 +19,37 @@ export class Particles {
     }
   }
 
-  setSpeed(speed: number): void {
-    this.speed = speed;
+  setSpeed(_speed: number): void {
+    // Controlled by intensity
   }
 
   draw(intensity: number): void {
-    const avgFreq = audioInput.getAverageFrequency() / 255;
-    const boost = 0.5 + intensity * 0.5 + avgFreq * 0.5;
+    const freqData = audioInput.getFrequencyData();
+    if (!freqData) return;
 
-    // Update particles
-    for (let particle of this.particles) {
-      particle.update(this.speed, boost, this.p.width, this.p.height);
+    const avgFreq = audioInput.getAverageFrequency() / 255;
+    const bass = audioInput.getFrequencyBand(0, 8) / 255;
+    const mid = audioInput.getFrequencyBand(8, 16) / 255;
+    const treble = audioInput.getFrequencyBand(16, 32) / 255;
+
+    // Update particles based on audio
+    for (let i = 0; i < this.particles.length; i++) {
+      const freq = (freqData[i * 2] || 0) / 255;
+      this.particles[i].update(bass, mid, treble, freq, intensity, avgFreq);
     }
 
-    // Draw lines between nearby particles
-    this.drawConnections(avgFreq, boost);
+    // Draw connections that pulse with audio
+    this.drawConnections(avgFreq, bass);
 
     // Draw particles
     for (let particle of this.particles) {
-      particle.display();
+      particle.display(avgFreq);
     }
   }
 
-  private drawConnections(avgFreq: number, boost: number): void {
-    const connectionDistance = 150 + avgFreq * 100 + boost * 50;
+  private drawConnections(avgFreq: number, bass: number): void {
+    // Connection distance driven by bass (low frequencies trigger wider connections)
+    const connectionDistance = 80 + bass * 150 + avgFreq * 50;
 
     for (let i = 0; i < this.particles.length; i++) {
       for (let j = i + 1; j < this.particles.length; j++) {
@@ -54,9 +60,9 @@ export class Particles {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < connectionDistance) {
-          const alpha = 100 * (1 - distance / connectionDistance) * (0.5 + boost);
+          const alpha = 80 * (1 - distance / connectionDistance) * (0.3 + bass * 0.7);
           this.p.stroke(255, 140, 0, alpha);
-          this.p.strokeWeight(0.5 + avgFreq * 1.5);
+          this.p.strokeWeight(0.5 + bass * 2);
           this.p.line(p1.x, p1.y, p2.x, p2.y);
         }
       }
@@ -68,45 +74,52 @@ class Particle {
   private p: p5;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
+  baseX: number;
+  baseY: number;
   size: number;
-  angle: number;
 
   constructor(p: p5, x: number, y: number) {
     this.p = p;
     this.x = x;
     this.y = y;
-    this.vx = p.random(-0.5, 0.5);
-    this.vy = p.random(-0.5, 0.5);
-    this.size = p.random(2, 6);
-    this.angle = p.random(this.p.TWO_PI);
+    this.baseX = x;
+    this.baseY = y;
+    this.size = p.random(3, 7);
   }
 
-  update(speed: number, boost: number, width: number, height: number): void {
-    this.x += this.vx * speed * boost * 0.3;
-    this.y += this.vy * speed * boost * 0.3;
-    this.angle += 0.02 * boost;
+  update(bass: number, mid: number, treble: number, _freq: number, intensity: number, avgFreq: number): void {
+    // Only move if there's audio
+    if (avgFreq > 0.05) {
+      // Move toward center on bass hits
+      const pullX = (this.p.width / 2 - this.x) * bass * 0.02 * intensity;
+      const pullY = (this.p.height / 2 - this.y) * bass * 0.02 * intensity;
 
-    // Wrap around edges
-    if (this.x < 0) this.x = width;
-    if (this.x > width) this.x = 0;
-    if (this.y < 0) this.y = height;
-    if (this.y > height) this.y = 0;
+      // Drift with mid frequencies
+      const driftX = (mid - 0.5) * 2 * intensity;
+      const driftY = (treble - 0.5) * 2 * intensity;
 
-    // Perlin noise influence
-    const noise = this.p.noise(this.angle, this.x * 0.01, this.y * 0.01);
-    this.vx = Math.cos(noise * this.p.TWO_PI) * 0.3;
-    this.vy = Math.sin(noise * this.p.TWO_PI) * 0.3;
+      this.x += pullX + driftX;
+      this.y += pullY + driftY;
+
+      // Keep in bounds
+      this.x = this.p.constrain(this.x, 10, this.p.width - 10);
+      this.y = this.p.constrain(this.y, 10, this.p.height - 10);
+    } else {
+      // Slowly return to base position when silent
+      this.x += (this.baseX - this.x) * 0.05;
+      this.y += (this.baseY - this.y) * 0.05;
+    }
   }
 
-  display(): void {
-    this.p.fill(255, 140, 0, 220);
+  display(avgFreq: number): void {
+    const brightness = 180 + avgFreq * 75;
+    this.p.fill(255, 140, 0, brightness);
     this.p.noStroke();
-    this.p.ellipse(this.x, this.y, this.size * 1.2, this.size * 1.2);
+    this.p.ellipse(this.x, this.y, this.size, this.size);
 
-    // Glow
-    this.p.fill(255, 140, 0, 80);
+    // Glow intensity tied to audio
+    const glowAlpha = avgFreq * 150;
+    this.p.fill(255, 140, 0, glowAlpha);
     this.p.ellipse(this.x, this.y, this.size * 3, this.size * 3);
   }
 }

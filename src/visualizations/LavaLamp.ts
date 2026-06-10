@@ -4,7 +4,6 @@ import { audioInput } from '../AudioInput';
 export class LavaLamp {
   private p: p5;
   private blobs: Blob[] = [];
-  private speed: number = 1;
 
   constructor(p: p5) {
     this.p = p;
@@ -13,36 +12,40 @@ export class LavaLamp {
 
   private initialize(): void {
     const numBlobs = 3;
-    const padding = 60;
     for (let i = 0; i < numBlobs; i++) {
-      const x = this.p.random(padding, this.p.width - padding);
-      const y = this.p.random(padding, this.p.height - padding);
-      this.blobs.push(new Blob(this.p, x, y));
+      const x = this.p.width / 2 + this.p.cos((i / 3) * this.p.TWO_PI) * 80;
+      const y = this.p.height / 2 + this.p.sin((i / 3) * this.p.TWO_PI) * 80;
+      this.blobs.push(new Blob(this.p, x, y, i));
     }
   }
 
-  setSpeed(speed: number): void {
-    this.speed = speed;
+  setSpeed(_speed: number): void {
+    // Speed controlled by intensity slider in UI
   }
 
   draw(intensity: number): void {
-    const avgFreq = audioInput.getAverageFrequency() / 255;
-    const boost = 0.5 + intensity * 0.5 + avgFreq * 0.3;
+    const freqData = audioInput.getFrequencyData();
+    if (!freqData) return;
 
-    for (let blob of this.blobs) {
-      blob.update(this.speed, boost, this.p.width, this.p.height);
-      blob.display();
+    const avgFreq = audioInput.getAverageFrequency() / 255;
+    const bass = audioInput.getFrequencyBand(0, 10) / 255;
+    const mid = audioInput.getFrequencyBand(10, 30) / 255;
+
+    for (let i = 0; i < this.blobs.length; i++) {
+      const freq = (freqData[i * 10] || 0) / 255;
+      this.blobs[i].display(avgFreq, bass, mid, freq, intensity);
     }
 
-    this.drawGlow();
+    this.drawGlow(avgFreq);
   }
 
-  private drawGlow(): void {
+  private drawGlow(avgFreq: number): void {
     this.p.blendMode(this.p.SCREEN);
     for (let blob of this.blobs) {
-      this.p.fill(255, 140, 0, 30);
+      const glowSize = 60 + avgFreq * 100;
+      this.p.fill(255, 140, 0, 20 + avgFreq * 80);
       this.p.noStroke();
-      this.p.ellipse(blob.x, blob.y, blob.size * 1.3, blob.size * 1.3);
+      this.p.ellipse(blob.x, blob.y, glowSize, glowSize);
     }
     this.p.blendMode(this.p.BLEND);
   }
@@ -52,44 +55,41 @@ class Blob {
   private p: p5;
   x: number;
   y: number;
-  size: number;
-  vx: number;
-  vy: number;
-  angle: number;
+  baseX: number;
+  baseY: number;
+  id: number;
 
-  constructor(p: p5, x: number, y: number) {
+  constructor(p: p5, x: number, y: number, id: number) {
     this.p = p;
     this.x = x;
     this.y = y;
-    this.size = p.random(60, 120);
-    this.vx = p.random(-1, 1);
-    this.vy = p.random(-1, 1);
-    this.angle = 0;
+    this.baseX = x;
+    this.baseY = y;
+    this.id = id;
   }
 
-  update(speed: number, boost: number, width: number, height: number): void {
-    this.x += this.vx * speed * boost;
-    this.y += this.vy * speed * boost;
-    this.angle += 0.02 * boost;
-    this.size = 80 + 20 * Math.sin(this.angle) + 20 * boost;
+  display(avgFreq: number, bass: number, mid: number, freq: number, intensity: number): void {
+    // Position pulls toward center based on bass (gravity effect)
+    const pull = bass * 0.3 + avgFreq * 0.1;
+    this.x = this.baseX * (1 - pull * 0.5) + this.p.width / 2 * pull * 0.5;
+    this.y = this.baseY * (1 - pull * 0.5) + this.p.height / 2 * pull * 0.5;
 
-    // Soft bounds
-    if (this.x < 0 || this.x > width) this.vx *= -1;
-    if (this.y < 0 || this.y > height) this.vy *= -1;
+    // Size DIRECTLY tied to audio
+    const baseSize = 60 + mid * 80;
+    const sizeBoost = freq * 100 * intensity;
+    const size = baseSize + sizeBoost;
 
-    this.x = Math.max(0, Math.min(width, this.x));
-    this.y = Math.max(0, Math.min(height, this.y));
-  }
-
-  display(): void {
-    this.p.fill(255, 140, 0, 200);
+    // Draw gooey blob with deformation based on frequency
+    this.p.fill(255, 140 - bass * 100, 0, 200);
     this.p.noStroke();
     this.p.beginShape();
-    const segments = 20;
+
+    const segments = 30;
     for (let i = 0; i < segments; i++) {
       const angle = (this.p.TWO_PI / segments) * i;
-      const wave = Math.sin(angle * 3 + this.angle) * 8;
-      const r = this.size / 2 + wave;
+      // Deformation directly from frequency data
+      const deform = Math.sin(angle * 4 + this.id) * freq * 40 * intensity;
+      const r = size / 2 + deform;
       const px = this.x + Math.cos(angle) * r;
       const py = this.y + Math.sin(angle) * r;
       this.p.vertex(px, py);

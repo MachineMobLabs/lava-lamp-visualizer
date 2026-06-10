@@ -4,7 +4,6 @@ import { audioInput } from '../AudioInput';
 export class InkDrift {
   private p: p5;
   private trails: Trail[] = [];
-  private speed: number = 1;
 
   constructor(p: p5) {
     this.p = p;
@@ -16,22 +15,28 @@ export class InkDrift {
     for (let i = 0; i < numTrails; i++) {
       const x = this.p.width / 2;
       const y = (this.p.height / (numTrails + 1)) * (i + 1);
-      const hue = (i * 60) % 360;
+      const hue = i * 90;
       this.trails.push(new Trail(this.p, x, y, hue));
     }
   }
 
-  setSpeed(speed: number): void {
-    this.speed = speed;
+  setSpeed(_speed: number): void {
+    // Controlled by intensity
   }
 
   draw(intensity: number): void {
-    const avgFreq = audioInput.getAverageFrequency() / 255;
-    const boost = 0.5 + intensity * 0.5 + avgFreq * 0.3;
+    const freqData = audioInput.getFrequencyData();
+    if (!freqData) return;
 
-    for (let trail of this.trails) {
-      trail.update(this.speed, boost);
-      trail.display();
+    const avgFreq = audioInput.getAverageFrequency() / 255;
+    const bass = audioInput.getFrequencyBand(0, 8) / 255;
+    const mid = audioInput.getFrequencyBand(8, 16) / 255;
+    const treble = audioInput.getFrequencyBand(16, 32) / 255;
+
+    for (let i = 0; i < this.trails.length; i++) {
+      const freq = (freqData[i * 20] || 0) / 255;
+      this.trails[i].update(bass, mid, treble, freq, intensity, avgFreq);
+      this.trails[i].display();
     }
   }
 }
@@ -41,40 +46,47 @@ class Trail {
   private points: Point[] = [];
   private x: number;
   private y: number;
+  private baseX: number;
+  private baseY: number;
   private hue: number;
-  private time: number = 0;
-  private maxPoints: number = 100;
+  private maxPoints: number = 80;
 
   constructor(p: p5, x: number, y: number, hue: number) {
     this.p = p;
     this.x = x;
     this.y = y;
+    this.baseX = x;
+    this.baseY = y;
     this.hue = hue;
   }
 
-  update(speed: number, boost: number): void {
-    this.time += 0.05 * speed * boost;
+  update(bass: number, mid: number, treble: number, freq: number, intensity: number, avgFreq: number): void {
+    // Only add points if there's meaningful audio
+    if (avgFreq > 0.05) {
+      // Movement driven by frequency bands
+      this.x += (mid - 0.5) * 3 * intensity;
+      this.y += (bass - 0.5) * 2 * intensity;
 
-    const noise1 = this.p.noise(this.time, 0);
-    const noise2 = this.p.noise(this.time, 100);
+      // Slight vertical oscillation from treble
+      this.y += Math.sin(freq * 10) * treble * 2 * intensity;
 
-    this.x += (noise1 - 0.5) * 4 * speed * boost;
-    this.y += (noise2 - 0.5) * 2 * speed * boost;
+      // Keep within bounds
+      this.x = this.p.constrain(this.x, 20, this.p.width - 20);
+      this.y = this.p.constrain(this.y, 20, this.p.height - 20);
 
-    // Soft bounds
-    if (this.x < 0 || this.x > this.p.width) {
-      this.x = this.p.constrain(this.x, 0, this.p.width);
+      this.points.push({ x: this.x, y: this.y, age: 0, freq: freq });
+
+      if (this.points.length > this.maxPoints) {
+        this.points.shift();
+      }
+    } else {
+      // Reset to base position when no audio
+      this.x = this.baseX;
+      this.y = this.baseY;
+      this.points = [];
     }
-    if (this.y < 0 || this.y > this.p.height) {
-      this.y = this.p.constrain(this.y, 0, this.p.height);
-    }
 
-    this.points.push({ x: this.x, y: this.y, age: 0 });
-
-    if (this.points.length > this.maxPoints) {
-      this.points.shift();
-    }
-
+    // Age all points
     for (let point of this.points) {
       point.age++;
     }
@@ -85,16 +97,16 @@ class Trail {
     for (let i = 1; i < this.points.length; i++) {
       const prev = this.points[i - 1];
       const curr = this.points[i];
-      const alpha = 255 * (1 - curr.age / this.maxPoints);
-      const size = 3 * (1 - curr.age / this.maxPoints);
+      const alpha = 200 * (1 - curr.age / this.maxPoints);
+      const size = 2 + curr.freq * 3 * (1 - curr.age / this.maxPoints);
 
-      // Color based on hue with variation
-      const r = Math.sin(this.hue * 0.01745) * 127 + 128;
-      const g = Math.sin((this.hue + 120) * 0.01745) * 127 + 128;
-      const b = Math.sin((this.hue + 240) * 0.01745) * 127 + 128;
+      // Color varies by hue
+      const r = Math.sin((this.hue + 0) * 0.01745) * 100 + 155;
+      const g = Math.sin((this.hue + 120) * 0.01745) * 100 + 155;
+      const b = Math.sin((this.hue + 240) * 0.01745) * 100 + 155;
 
       this.p.strokeWeight(size);
-      this.p.stroke(r, g, b, alpha * 0.8);
+      this.p.stroke(r, g, b, alpha);
       this.p.line(prev.x, prev.y, curr.x, curr.y);
     }
 
@@ -102,10 +114,10 @@ class Trail {
     if (this.points.length > 0) {
       const head = this.points[this.points.length - 1];
       this.p.noStroke();
-      const r = Math.sin(this.hue * 0.01745) * 127 + 128;
-      const g = Math.sin((this.hue + 120) * 0.01745) * 127 + 128;
-      const b = Math.sin((this.hue + 240) * 0.01745) * 127 + 128;
-      this.p.fill(r, g, b, 150);
+      const r = Math.sin(this.hue * 0.01745) * 100 + 155;
+      const g = Math.sin((this.hue + 120) * 0.01745) * 100 + 155;
+      const b = Math.sin((this.hue + 240) * 0.01745) * 100 + 155;
+      this.p.fill(r, g, b, 180);
       this.p.ellipse(head.x, head.y, 8, 8);
     }
   }
@@ -115,4 +127,5 @@ interface Point {
   x: number;
   y: number;
   age: number;
+  freq: number;
 }
