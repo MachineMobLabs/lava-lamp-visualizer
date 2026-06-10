@@ -12,42 +12,37 @@ export class LavaLamp {
 
   private initialize(): void {
     const numBlobs = 3;
+    const centerX = this.p.width / 2;
+    const centerY = this.p.height / 2;
     for (let i = 0; i < numBlobs; i++) {
-      const x = this.p.width / 2 + this.p.cos((i / 3) * this.p.TWO_PI) * 80;
-      const y = this.p.height / 2 + this.p.sin((i / 3) * this.p.TWO_PI) * 80;
-      this.blobs.push(new Blob(this.p, x, y, i));
+      this.blobs.push(new Blob(
+        this.p,
+        centerX + (Math.random() - 0.5) * 200,
+        centerY + (Math.random() - 0.5) * 200,
+        i
+      ));
     }
   }
 
   setSpeed(_speed: number): void {
-    // Speed controlled by intensity slider in UI
+    // Speed controlled by intensity slider
   }
 
   draw(intensity: number): void {
     const freqData = audioInput.getFrequencyData();
     if (!freqData) return;
 
-    const avgFreq = audioInput.getAverageFrequency() / 255;
-    const bass = audioInput.getFrequencyBand(0, 10) / 255;
-    const mid = audioInput.getFrequencyBand(10, 30) / 255;
+    const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
 
-    for (let i = 0; i < this.blobs.length; i++) {
-      const freq = (freqData[i * 10] || 0) / 255;
-      this.blobs[i].display(avgFreq, bass, mid, freq, intensity);
-    }
+    // Light trail effect
+    this.p.fill(10, 10, 10, 25);
+    this.p.rect(0, 0, this.p.width, this.p.height);
 
-    this.drawGlow(avgFreq);
-  }
-
-  private drawGlow(avgFreq: number): void {
-    this.p.blendMode(this.p.SCREEN);
+    // Update and draw blobs
     for (let blob of this.blobs) {
-      const glowSize = 60 + avgFreq * 100;
-      this.p.fill(255, 140, 0, 20 + avgFreq * 80);
-      this.p.noStroke();
-      this.p.ellipse(blob.x, blob.y, glowSize, glowSize);
+      blob.update(avgFreq, intensity);
+      blob.display(avgFreq);
     }
-    this.p.blendMode(this.p.BLEND);
   }
 }
 
@@ -55,50 +50,70 @@ class Blob {
   private p: p5;
   x: number;
   y: number;
-  baseX: number;
-  baseY: number;
+  vx: number;
+  vy: number;
+  size: number;
+  baseSize: number;
   id: number;
 
   constructor(p: p5, x: number, y: number, id: number) {
     this.p = p;
     this.x = x;
     this.y = y;
-    this.baseX = x;
-    this.baseY = y;
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.vy = (Math.random() - 0.5) * 0.5;
+    this.size = 60 + Math.random() * 40;
+    this.baseSize = this.size;
     this.id = id;
   }
 
-  display(avgFreq: number, bass: number, mid: number, freq: number, intensity: number): void {
-    // Smooth position pulls with easing
-    const pull = (bass * 0.4 + avgFreq * 0.15) * intensity;
-    const targetX = this.baseX * (1 - pull * 0.3) + this.p.width / 2 * pull * 0.3;
-    const targetY = this.baseY * (1 - pull * 0.3) + this.p.height / 2 * pull * 0.3;
+  update(avgFreq: number, intensity: number): void {
+    // Movement
+    this.x += this.vx * intensity;
+    this.y += this.vy * intensity;
 
-    this.x = this.x * 0.85 + targetX * 0.15;
-    this.y = this.y * 0.85 + targetY * 0.15;
+    // Bounce off walls
+    if (this.x < 0 || this.x > this.p.width) this.vx *= -1;
+    if (this.y < 0 || this.y > this.p.height) this.vy *= -1;
 
-    // Size smoothly modulated by audio
-    const baseSize = 70 + mid * 60 + avgFreq * 40;
-    const sizeBoost = freq * 80 + bass * 50;
-    const size = baseSize + sizeBoost;
+    // Keep in bounds
+    this.x = Math.max(0, Math.min(this.p.width, this.x));
+    this.y = Math.max(0, Math.min(this.p.height, this.y));
 
-    // Draw gooey blob with smooth deformation
-    const colorMod = Math.max(0, 1 - bass * 0.8);
-    this.p.fill(255, 140 * colorMod, 0, 220);
+    // Size pulses with audio
+    const targetSize = this.baseSize + avgFreq * 60;
+    this.size = this.size * 0.9 + targetSize * 0.1;
+  }
+
+  display(avgFreq: number): void {
+    const hue = (this.id * 120 + avgFreq * 60) % 360;
+    const s = 100;
+    const l = 50;
+
+    // Convert HSL to RGB
+    const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
+    const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+    const m = (l / 100) - c / 2;
+
+    let r = 0, g = 0, b = 0;
+    if (hue < 60) { r = c; g = x; b = 0; }
+    else if (hue < 120) { r = x; g = c; b = 0; }
+    else if (hue < 180) { r = 0; g = c; b = x; }
+    else if (hue < 240) { r = 0; g = x; b = c; }
+    else if (hue < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    // Draw blob with gooey effect
+    this.p.fill(r, g, b, 100);
     this.p.noStroke();
-    this.p.beginShape();
+    this.p.ellipse(this.x, this.y, this.size, this.size);
 
-    const segments = 40;
-    for (let i = 0; i < segments; i++) {
-      const angle = (this.p.TWO_PI / segments) * i;
-      // Smooth deformation from audio
-      const deform = Math.sin(angle * 3 + this.id) * freq * 30 * intensity +
-                    Math.sin(angle * 2) * avgFreq * 15;
-      const r = size / 2 + deform;
-      const px = this.x + Math.cos(angle) * r;
-      const py = this.y + Math.sin(angle) * r;
-      this.p.vertex(px, py);
-    }
-    this.p.endShape();
+    // Glow
+    this.p.fill(r, g, b, 40);
+    this.p.ellipse(this.x, this.y, this.size * 1.5, this.size * 1.5);
   }
 }

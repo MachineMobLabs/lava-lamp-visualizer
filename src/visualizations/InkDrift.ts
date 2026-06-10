@@ -7,17 +7,6 @@ export class InkDrift {
 
   constructor(p: p5) {
     this.p = p;
-    this.initialize();
-  }
-
-  private initialize(): void {
-    const numTrails = 4;
-    for (let i = 0; i < numTrails; i++) {
-      const x = this.p.width / 2;
-      const y = (this.p.height / (numTrails + 1)) * (i + 1);
-      const hue = i * 90;
-      this.trails.push(new Trail(this.p, x, y, hue));
-    }
   }
 
   setSpeed(_speed: number): void {
@@ -28,112 +17,93 @@ export class InkDrift {
     const freqData = audioInput.getFrequencyData();
     if (!freqData) return;
 
-    const avgFreq = audioInput.getAverageFrequency() / 255;
-    const bass = audioInput.getFrequencyBand(0, 30) / 255;
-    const mid = audioInput.getFrequencyBand(30, 100) / 255;
-    const treble = audioInput.getFrequencyBand(100, 256) / 255;
+    const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
 
-    for (let i = 0; i < this.trails.length; i++) {
-      this.trails[i].update(bass, mid, treble, intensity, avgFreq);
+    // Light trail effect
+    this.p.fill(10, 10, 10, 15);
+    this.p.rect(0, 0, this.p.width, this.p.height);
+
+    // Spawn trails
+    if (Math.random() < 0.3) {
+      const centerX = this.p.width / 2;
+      const centerY = this.p.height / 2;
+      this.trails.push(new Trail(
+        this.p,
+        centerX + (Math.random() - 0.5) * 200,
+        centerY + (Math.random() - 0.5) * 200,
+        Math.random() * 360
+      ));
+    }
+
+    // Update and display
+    for (let i = this.trails.length - 1; i >= 0; i--) {
+      this.trails[i].update(avgFreq, intensity);
       this.trails[i].display();
+
+      if (this.trails[i].isDead()) {
+        this.trails.splice(i, 1);
+      }
     }
   }
 }
 
 class Trail {
   private p: p5;
-  private points: Point[] = [];
-  private x: number;
-  private y: number;
-  private baseX: number;
-  private baseY: number;
-  private hue: number;
-  private vx: number = 0;
-  private vy: number = 0;
-  private maxPoints: number = 150;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  hue: number;
+  size: number;
 
   constructor(p: p5, x: number, y: number, hue: number) {
     this.p = p;
     this.x = x;
     this.y = y;
-    this.baseX = x;
-    this.baseY = y;
+    this.vx = (Math.random() - 0.5) * 2;
+    this.vy = (Math.random() - 0.5) * 2;
+    this.life = 1;
     this.hue = hue;
+    this.size = 5;
   }
 
-  update(bass: number, mid: number, treble: number, intensity: number, avgFreq: number): void {
-    // Add point every frame if there's audio
-    if (avgFreq > 0.01) {
-      // Smoothed velocity for fluid motion
-      const targetVx = (mid - 0.5) * 6 * intensity;
-      const targetVy = (bass - 0.5) * 4 * intensity + treble * 2;
-
-      this.vx = this.vx * 0.7 + targetVx * 0.3;
-      this.vy = this.vy * 0.7 + targetVy * 0.3;
-
-      this.x += this.vx;
-      this.y += this.vy;
-
-      // Keep within bounds with bounce
-      if (this.x < 30 || this.x > this.p.width - 30) this.vx *= -0.5;
-      if (this.y < 30 || this.y > this.p.height - 30) this.vy *= -0.5;
-
-      this.x = this.p.constrain(this.x, 30, this.p.width - 30);
-      this.y = this.p.constrain(this.y, 30, this.p.height - 30);
-
-      this.points.push({ x: this.x, y: this.y, age: 0 });
-
-      if (this.points.length > this.maxPoints) {
-        this.points.shift();
-      }
-    } else {
-      // Gradually return to base when silent
-      this.x = this.x * 0.95 + this.baseX * 0.05;
-      this.y = this.y * 0.95 + this.baseY * 0.05;
-      this.vx *= 0.9;
-      this.vy *= 0.9;
-    }
-
-    // Age all points
-    for (let point of this.points) {
-      point.age++;
-    }
+  update(avgFreq: number, intensity: number): void {
+    this.x += this.vx * intensity;
+    this.y += this.vy * intensity;
+    this.life -= 0.008;
+    this.size *= 0.98;
+    this.size += avgFreq * 20;
   }
 
   display(): void {
-    this.p.noFill();
-    for (let i = 1; i < this.points.length; i++) {
-      const prev = this.points[i - 1];
-      const curr = this.points[i];
-      const progress = 1 - curr.age / this.maxPoints;
-      const alpha = 200 * progress;
-      const size = 1.5 + progress * 3;
+    const h = this.hue;
+    const s = 100;
+    const l = 50;
 
-      // Color based on hue
-      const r = Math.sin((this.hue + 0) * 0.01745) * 80 + 160;
-      const g = Math.sin((this.hue + 120) * 0.01745) * 80 + 160;
-      const b = Math.sin((this.hue + 240) * 0.01745) * 80 + 160;
+    // Convert HSL to RGB
+    const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = (l / 100) - c / 2;
 
-      this.p.strokeWeight(size);
-      this.p.stroke(r, g, b, alpha);
-      this.p.line(prev.x, prev.y, curr.x, curr.y);
-    }
+    let r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
 
-    // Head glow
-    if (this.points.length > 0) {
-      const head = this.points[this.points.length - 1];
-      this.p.noStroke();
-      const r = Math.sin(this.hue * 0.01745) * 80 + 160;
-      const g = Math.sin((this.hue + 120) * 0.01745) * 80 + 160;
-      const b = Math.sin((this.hue + 240) * 0.01745) * 80 + 160;
-      this.p.fill(r, g, b, 200);
-      this.p.ellipse(head.x, head.y, 10, 10);
-    }
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    this.p.fill(r, g, b, this.life * 0.5 * 255);
+    this.p.noStroke();
+    this.p.ellipse(this.x, this.y, this.size, this.size);
   }
-}
 
-interface Point {
-  x: number;
-  y: number;
-  age: number;
+  isDead(): boolean {
+    return this.life <= 0;
+  }
 }
