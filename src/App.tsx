@@ -31,7 +31,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!p5ContainerRef.current || !isInitialized) return;
+    if (!p5ContainerRef.current) return;
 
     const sketch = (p: p5) => {
       p5InstanceRef.current = p;
@@ -74,7 +74,7 @@ export default function App() {
     return () => {
       instance.remove();
     };
-  }, [isInitialized]);
+  }, [intensity]);
 
   useEffect(() => {
     if (!p5InstanceRef.current) return;
@@ -112,7 +112,7 @@ export default function App() {
 
       <div className="controls">
         <div className="header">
-          <h1>Lava Lamp</h1>
+          <h1>Lava Lamp.</h1>
           {!isInitialized && (
             <button className="mic-button" onClick={initializeAudio}>
               🎤 Enable Microphone
