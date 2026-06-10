@@ -94,9 +94,9 @@ export class LavaLamp {
             if (particle.y < -particle.size) {
                 particle.y = this.tempCanvas.height + particle.size;
             }
-            // Size pulses dramatically with audio - makes response very visible
-            // Ranges from baseSize to baseSize * 2.5 based on audio
-            const sizeMultiplier = 1 + avgFreq * 1.5;
+            // Size pulses with audio - makes response visible
+            // Ranges from baseSize to baseSize * 1.7 based on audio (70% increase)
+            const sizeMultiplier = 1 + avgFreq * 0.7;
             particle.size = particle.baseSize * sizeMultiplier;
             // Draw radial gradient
             this.tempCtx.beginPath();
