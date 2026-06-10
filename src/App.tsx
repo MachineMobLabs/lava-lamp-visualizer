@@ -137,7 +137,6 @@ export default function App() {
             step="0.01"
             value={intensity}
             onChange={(e) => setIntensity(parseFloat(e.target.value))}
-            disabled={!isInitialized}
           />
         </div>
 
@@ -147,28 +146,24 @@ export default function App() {
             <button
               className={`mode-btn ${mode === 'lava' ? 'active' : ''}`}
               onClick={() => setMode('lava')}
-              disabled={!isInitialized}
             >
               🌋 Lava
             </button>
             <button
               className={`mode-btn ${mode === 'bubbles' ? 'active' : ''}`}
               onClick={() => setMode('bubbles')}
-              disabled={!isInitialized}
             >
               ✨ Bubbles
             </button>
             <button
               className={`mode-btn ${mode === 'ink' ? 'active' : ''}`}
               onClick={() => setMode('ink')}
-              disabled={!isInitialized}
             >
               💧 Ink
             </button>
             <button
               className={`mode-btn ${mode === 'particles' ? 'active' : ''}`}
               onClick={() => setMode('particles')}
-              disabled={!isInitialized}
             >
               ✦ Particles
             </button>
