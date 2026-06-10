@@ -15,8 +15,8 @@ export class Bubbles {
   }
 
   draw(intensity: number): void {
-    // Clear canvas with slight fade
-    this.p.fill(10, 10, 10, 30);
+    // Clear canvas with very subtle fade
+    this.p.fill(10, 10, 10, 10);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
     // Get audio data
