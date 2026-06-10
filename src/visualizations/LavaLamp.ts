@@ -1,145 +1,140 @@
 import p5 from 'p5';
-import { audioInput } from '../AudioInput';
 
 export class LavaLamp {
   private p: p5;
-  private particles: LavaParticle[];
-  private time: number = 0;
+  private particles: Particle[];
+  private tempCanvas: HTMLCanvasElement;
+  private tempCtx: CanvasRenderingContext2D;
+  private threshold: number = 210;
+  private colors: { r: number; g: number; b: number } = { r: 255, g: 0, b: 0 };
+  private cycle: number = 0;
 
   constructor(p: p5) {
     this.p = p;
-    // Create 6 heat particles with varied timing for rich animation
-    this.particles = [
-      new LavaParticle(this.p, this.p.width * 0.25, this.p.height * 0.7, 0.0),
-      new LavaParticle(this.p, this.p.width * 0.75, this.p.height * 0.75, 0.7),
-      new LavaParticle(this.p, this.p.width * 0.5, this.p.height * 0.8, 1.4),
-      new LavaParticle(this.p, this.p.width * 0.4, this.p.height * 0.68, 0.35),
-      new LavaParticle(this.p, this.p.width * 0.6, this.p.height * 0.76, 2.1),
-      new LavaParticle(this.p, this.p.width * 0.5, this.p.height * 0.88, 1.05),
-    ];
+    this.particles = [];
+
+    // Create temp canvas for metaball rendering
+    this.tempCanvas = document.createElement('canvas');
+    this.tempCanvas.width = p.width;
+    this.tempCanvas.height = p.height;
+    this.tempCtx = this.tempCanvas.getContext('2d')!;
+
+    // Initialize 50 particles with random velocities (slowed down)
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * p.width;
+      const y = Math.random() * p.height;
+      const vx = (Math.random() * 2) - 1; // Reduced from 8 to 2 for slower motion
+      const vy = (Math.random() * 2) - 1; // Reduced from 8 to 2
+      const size = Math.floor(Math.random() * 40) + 40; // Adjusted size range
+
+      this.particles.push({ x, y, vx, vy, size });
+    }
   }
 
   setSpeed(_speed: number): void {
-    // Speed controlled by intensity slider
+    // Speed can be controlled via intensity slider if needed
   }
 
   draw(intensity: number): void {
-    // Fade trail for ghosting effect
-    this.p.fill(10, 10, 10, 30);
-    this.p.rect(0, 0, this.p.width, this.p.height);
+    // Clear temp canvas
+    this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
 
-    this.time += 0.016;
-    const audioFreq = audioInput.getAverageFrequency() / 255;
-
-    // Update particles
+    // Update particle positions with intensity affecting speed
+    const speedMult = intensity * 0.5 + 0.5; // Scale 0-1 to 0.5-1
     for (let particle of this.particles) {
-      particle.update(this.time, intensity, audioFreq);
+      particle.x += particle.vx * speedMult;
+      particle.y += particle.vy * speedMult;
+
+      // Wrap around edges
+      if (particle.x > this.tempCanvas.width + particle.size) {
+        particle.x = -particle.size;
+      }
+      if (particle.x < -particle.size) {
+        particle.x = this.tempCanvas.width + particle.size;
+      }
+      if (particle.y > this.tempCanvas.height + particle.size) {
+        particle.y = -particle.size;
+      }
+      if (particle.y < -particle.size) {
+        particle.y = this.tempCanvas.height + particle.size;
+      }
+
+      // Draw radial gradient
+      this.tempCtx.beginPath();
+      const grad = this.tempCtx.createRadialGradient(
+        particle.x,
+        particle.y,
+        1,
+        particle.x,
+        particle.y,
+        particle.size
+      );
+      grad.addColorStop(
+        0,
+        `rgba(${this.colors.r},${this.colors.g},${this.colors.b},1)`
+      );
+      grad.addColorStop(
+        1,
+        `rgba(${this.colors.r},${this.colors.g},${this.colors.b},0)`
+      );
+      this.tempCtx.fillStyle = grad;
+      this.tempCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      this.tempCtx.fill();
     }
 
-    // Draw with blend mode for merging effect
-    this.p.blendMode(this.p.ADD);
-    for (let particle of this.particles) {
-      particle.display(this.p);
+    // Apply metaball threshold effect and draw
+    this.metaballize();
+
+    // Update color cycle
+    this.colorCycle();
+  }
+
+  private metaballize(): void {
+    const imageData = this.tempCtx.getImageData(
+      0,
+      0,
+      this.tempCanvas.width,
+      this.tempCanvas.height
+    );
+    const pix = imageData.data;
+
+    for (let i = 0; i < pix.length; i += 4) {
+      if (pix[i + 3] < this.threshold) {
+        pix[i + 3] /= 6;
+        if (pix[i + 3] > this.threshold / 4) {
+          pix[i + 3] = 0;
+        }
+      }
     }
-    this.p.blendMode(this.p.BLEND);
+
+    // Put modified image data back
+    this.tempCtx.putImageData(imageData, 0, 0);
+
+    // Get p5's canvas context and draw temp canvas to it
+    const canvas = (this.p as any).canvas as HTMLCanvasElement;
+    if (canvas) {
+      const mainCtx = canvas.getContext('2d');
+      if (mainCtx) {
+        mainCtx.drawImage(this.tempCanvas, 0, 0);
+      }
+    }
+  }
+
+  private colorCycle(): void {
+    this.cycle += 0.05; // Slower color cycle
+    if (this.cycle > 100) {
+      this.cycle = 0;
+    }
+    this.colors.r = Math.floor(Math.sin(0.3 * this.cycle + 0) * 127 + 128);
+    this.colors.g = Math.floor(Math.sin(0.3 * this.cycle + 2) * 127 + 128);
+    this.colors.b = Math.floor(Math.sin(0.3 * this.cycle + 4) * 127 + 128);
   }
 }
 
-class LavaParticle {
-  private p: p5;
-  private x: number;
-  private y: number;
-  private baseX: number;
-  private baseY: number;
-  private currentY: number;
-  private heat: number = 0;
-  private noiseOffsetX: number;
-  private noiseOffsetY: number;
-  private noiseOffsetHeat: number;
-
-  constructor(p: p5, x: number, y: number, noisePhase: number) {
-    this.p = p;
-    this.x = x;
-    this.y = y;
-    this.baseX = x;
-    this.baseY = y;
-    this.currentY = y;
-    this.noiseOffsetX = noisePhase * 100;
-    this.noiseOffsetY = noisePhase * 100 + 50;
-    this.noiseOffsetHeat = noisePhase * 100 + 200;
-  }
-
-  update(time: number, intensity: number, audioFreq: number): void {
-    // Heat cycle using Perlin noise - slower for dramatic cycle
-    const heatNoise = this.p.noise(this.noiseOffsetHeat + time * 0.3);
-    // Shape the heat curve to favor cooler temps (more time in orange/red phase)
-    this.heat = Math.pow(heatNoise * 1.2, 1.3);
-    this.heat = Math.max(0, Math.min(1, this.heat));
-
-    // Movement up when hot, down when cool - more dramatic range
-    const riseAmount = Math.pow(this.heat, 1.2) * 280 * intensity;
-    const targetY = this.baseY - riseAmount;
-    this.currentY += (targetY - this.currentY) * 0.12;
-
-    // Organic horizontal movement with Perlin noise
-    const noiseX = this.p.noise(this.noiseOffsetX + time * 0.4);
-    const wobble = (noiseX - 0.5) * 100 * intensity;
-    this.x = this.baseX + wobble;
-
-    // Vertical oscillation with audio influence
-    const noiseY = this.p.noise(this.noiseOffsetY + time * 0.25);
-    const oscillation = (noiseY - 0.5) * 50 * intensity;
-    this.y = this.currentY + oscillation + audioFreq * 20;
-  }
-
-  display(p: p5): void {
-    p.noStroke();
-
-    // Color gradient: orange (cool) → red → purple (hot)
-    let r: number, g: number, b: number;
-
-    if (this.heat < 0.5) {
-      // Cool phase: orange to red
-      const t = this.heat * 2;
-      r = 255;
-      g = Math.round(140 - t * 60);
-      b = Math.round(t * 100);
-    } else {
-      // Hot phase: red to purple
-      const t = (this.heat - 0.5) * 2;
-      r = 255 - Math.round(t * 80);
-      g = Math.round(80 - t * 80);
-      b = Math.round(100 + t * 150);
-    }
-
-    // Base radius expands dramatically with heat
-    const baseRadius = 55;
-    const heatRadius = Math.pow(this.heat, 1.1) * 100;
-    const totalRadius = baseRadius + heatRadius;
-
-    // Multiple concentric circles for organic blob effect with more layers
-    const layers = [
-      { scale: 1.8, alpha: 60 },
-      { scale: 1.5, alpha: 90 },
-      { scale: 1.25, alpha: 130 },
-      { scale: 1.0, alpha: 180 },
-      { scale: 0.75, alpha: 230 },
-      { scale: 0.5, alpha: 255 },
-    ];
-
-    for (const layer of layers) {
-      p.fill(r, g, b, layer.alpha);
-      const size = totalRadius * layer.scale * 2;
-      p.ellipse(this.x, this.y, size, size);
-    }
-
-    // Extra bright core highlight - shifts color when hot
-    p.fill(255, 200 + this.heat * 55, 150 - this.heat * 80, 180);
-    p.ellipse(
-      this.x - totalRadius * 0.12,
-      this.y - totalRadius * 0.12,
-      totalRadius * 0.55 * 2,
-      totalRadius * 0.55 * 2
-    );
-  }
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
 }
