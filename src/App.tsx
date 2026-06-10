@@ -13,6 +13,8 @@ export default function App() {
   const p5ContainerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<VisualizationMode>('lava');
   const [intensity, setIntensity] = useState(0.7);
+  const intensityRef = useRef(0.7);
+  const modeRef = useRef<VisualizationMode>('lava');
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,18 +55,43 @@ export default function App() {
         p.createCanvas(width, height);
         p.background(10, 10, 10);
         p.smooth();
-
-        // Create initial visualization
-        visualizationRef.current = new LavaLamp(p);
       };
 
       p.draw = function () {
+        // Validate visualization matches current mode every frame
+        const currentVizType = visualizationRef.current?.constructor.name;
+        const expectedType =
+          modeRef.current === 'lava' ? 'LavaLamp' :
+          modeRef.current === 'bubbles' ? 'Bubbles' :
+          modeRef.current === 'ink' ? 'InkDrift' :
+          'Particles';
+
+        if (currentVizType !== expectedType && p5InstanceRef.current) {
+          // Visualization is wrong, recreate it
+          let newViz: LavaLamp | Bubbles | InkDrift | Particles;
+          switch (modeRef.current) {
+            case 'lava':
+              newViz = new LavaLamp(p5InstanceRef.current);
+              break;
+            case 'bubbles':
+              newViz = new Bubbles(p5InstanceRef.current);
+              break;
+            case 'ink':
+              newViz = new InkDrift(p5InstanceRef.current);
+              break;
+            case 'particles':
+              newViz = new Particles(p5InstanceRef.current);
+              break;
+          }
+          visualizationRef.current = newViz;
+        }
+
         p.background(10, 10, 10, 20); // Slight trail effect
         p.fill(10, 10, 10, 20);
         p.rect(0, 0, p.width, p.height);
 
         if (visualizationRef.current) {
-          visualizationRef.current.draw(intensity);
+          visualizationRef.current.draw(intensityRef.current);
         }
       };
 
@@ -82,7 +109,7 @@ export default function App() {
     return () => {
       instance.remove();
     };
-  }, [intensity]);
+  }, []);
 
   useEffect(() => {
     if (!p5InstanceRef.current) return;
@@ -106,13 +133,19 @@ export default function App() {
     }
 
     visualizationRef.current = newViz;
-  }, [mode, isInitialized]);
+    modeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
+    intensityRef.current = intensity;
     if (visualizationRef.current && 'setSpeed' in visualizationRef.current) {
       (visualizationRef.current as any).setSpeed(intensity);
     }
   }, [intensity]);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   return (
     <div className="app">
@@ -120,7 +153,8 @@ export default function App() {
 
       <div className="controls">
         <div className="header">
-          <h1>Lava Lamp</h1>
+          <h1>Visualizer:</h1>
+          <p>Works solo or with your mic. Click enable mic to watch your audio come to life.</p>
           <button className="mic-button" onClick={toggleAudio}>
             {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
           </button>
@@ -135,8 +169,12 @@ export default function App() {
             min="0"
             max="1"
             step="0.01"
-            value={intensity}
-            onChange={(e) => setIntensity(parseFloat(e.target.value))}
+            defaultValue={0.7}
+            onChange={(e) => {
+              const newIntensity = parseFloat(e.target.value);
+              intensityRef.current = newIntensity;
+              // Don't call setIntensity to avoid re-renders
+            }}
           />
         </div>
 

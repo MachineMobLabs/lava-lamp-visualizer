@@ -31,24 +31,15 @@ export class Bubbles {
   }
 
   private createBubbles(max: number): void {
-    const colors = [
-      'rgba(255, 182, 193, 1)',  // soft pink
-      'rgba(230, 190, 255, 1)',  // soft lavender
-      'rgba(200, 230, 255, 1)',  // soft blue
-      'rgba(220, 237, 200, 1)',  // soft sage
-      'rgba(255, 218, 185, 1)',  // soft peach
-      'rgba(176, 224, 230, 1)',  // soft mint
-    ];
+    const whiteColor = 'rgba(255, 255, 255, 1)';
 
     for (let i = 0; i < max; i++) {
       const x = Math.random() * this.p.width;
       const y = Math.random() * this.p.height;
       const radius = Math.floor(Math.random() * 50) + 15;
-      const baseColor = colors[Math.floor(Math.random() * colors.length)];
-      const accentColor = 'rgba(255,255,255,1)'; // No longer used, but kept for compatibility
 
       this.bubbles.push(
-        new Bubble(x, y, radius, baseColor, accentColor, 1, this.p)
+        new Bubble(x, y, radius, whiteColor, whiteColor, 1, this.p)
       );
     }
   }

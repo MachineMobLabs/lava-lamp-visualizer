@@ -11,6 +11,8 @@ export default function App() {
     const p5ContainerRef = useRef(null);
     const [mode, setMode] = useState('lava');
     const [intensity, setIntensity] = useState(0.7);
+    const intensityRef = useRef(0.7);
+    const modeRef = useRef('lava');
     const [isInitialized, setIsInitialized] = useState(false);
     const [error, setError] = useState(null);
     const visualizationRef = useRef(null);
@@ -49,15 +51,38 @@ export default function App() {
                 p.createCanvas(width, height);
                 p.background(10, 10, 10);
                 p.smooth();
-                // Create initial visualization
-                visualizationRef.current = new LavaLamp(p);
             };
             p.draw = function () {
+                // Validate visualization matches current mode every frame
+                const currentVizType = visualizationRef.current?.constructor.name;
+                const expectedType = modeRef.current === 'lava' ? 'LavaLamp' :
+                    modeRef.current === 'bubbles' ? 'Bubbles' :
+                        modeRef.current === 'ink' ? 'InkDrift' :
+                            'Particles';
+                if (currentVizType !== expectedType && p5InstanceRef.current) {
+                    // Visualization is wrong, recreate it
+                    let newViz;
+                    switch (modeRef.current) {
+                        case 'lava':
+                            newViz = new LavaLamp(p5InstanceRef.current);
+                            break;
+                        case 'bubbles':
+                            newViz = new Bubbles(p5InstanceRef.current);
+                            break;
+                        case 'ink':
+                            newViz = new InkDrift(p5InstanceRef.current);
+                            break;
+                        case 'particles':
+                            newViz = new Particles(p5InstanceRef.current);
+                            break;
+                    }
+                    visualizationRef.current = newViz;
+                }
                 p.background(10, 10, 10, 20); // Slight trail effect
                 p.fill(10, 10, 10, 20);
                 p.rect(0, 0, p.width, p.height);
                 if (visualizationRef.current) {
-                    visualizationRef.current.draw(intensity);
+                    visualizationRef.current.draw(intensityRef.current);
                 }
             };
             p.windowResized = function () {
@@ -73,7 +98,7 @@ export default function App() {
         return () => {
             instance.remove();
         };
-    }, [intensity]);
+    }, []);
     useEffect(() => {
         if (!p5InstanceRef.current)
             return;
@@ -94,11 +119,20 @@ export default function App() {
                 break;
         }
         visualizationRef.current = newViz;
-    }, [mode, isInitialized]);
+        modeRef.current = mode;
+    }, [mode]);
     useEffect(() => {
+        intensityRef.current = intensity;
         if (visualizationRef.current && 'setSpeed' in visualizationRef.current) {
             visualizationRef.current.setSpeed(intensity);
         }
     }, [intensity]);
-    return (_jsxs("div", { className: "app", children: [_jsx("div", { className: "canvas-container", ref: p5ContainerRef }), _jsxs("div", { className: "controls", children: [_jsxs("div", { className: "header", children: [_jsx("h1", { children: "Lava Lamp" }), _jsx("button", { className: "mic-button", onClick: toggleAudio, children: !isInitialized ? 'Enable Microphone' : 'Disable Microphone' })] }), error && _jsx("div", { className: "error", children: error }), _jsxs("div", { className: "slider-group", children: [_jsx("label", { children: "Intensity" }), _jsx("input", { type: "range", min: "0", max: "1", step: "0.01", value: intensity, onChange: (e) => setIntensity(parseFloat(e.target.value)) })] }), _jsxs("div", { className: "mode-selector", children: [_jsx("label", { children: "Mode" }), _jsxs("div", { className: "mode-buttons", children: [_jsx("button", { className: `mode-btn ${mode === 'lava' ? 'active' : ''}`, onClick: () => setMode('lava'), children: "\uD83C\uDF0B Lava" }), _jsx("button", { className: `mode-btn ${mode === 'bubbles' ? 'active' : ''}`, onClick: () => setMode('bubbles'), children: "\u2728 Bubbles" }), _jsx("button", { className: `mode-btn ${mode === 'ink' ? 'active' : ''}`, onClick: () => setMode('ink'), children: "\uD83D\uDCA7 Ink" }), _jsx("button", { className: `mode-btn ${mode === 'particles' ? 'active' : ''}`, onClick: () => setMode('particles'), children: "\u2726 Particles" })] })] })] })] }));
+    useEffect(() => {
+        modeRef.current = mode;
+    }, [mode]);
+    return (_jsxs("div", { className: "app", children: [_jsx("div", { className: "canvas-container", ref: p5ContainerRef }), _jsxs("div", { className: "controls", children: [_jsxs("div", { className: "header", children: [_jsx("h1", { children: "Visualizer:" }), _jsx("p", { children: "Works solo or with your mic. Click enable mic to watch your audio come to life." }), _jsx("button", { className: "mic-button", onClick: toggleAudio, children: !isInitialized ? 'Enable Microphone' : 'Disable Microphone' })] }), error && _jsx("div", { className: "error", children: error }), _jsxs("div", { className: "slider-group", children: [_jsx("label", { children: "Intensity" }), _jsx("input", { type: "range", min: "0", max: "1", step: "0.01", defaultValue: 0.7, onChange: (e) => {
+                                    const newIntensity = parseFloat(e.target.value);
+                                    intensityRef.current = newIntensity;
+                                    // Don't call setIntensity to avoid re-renders
+                                } })] }), _jsxs("div", { className: "mode-selector", children: [_jsx("label", { children: "Mode" }), _jsxs("div", { className: "mode-buttons", children: [_jsx("button", { className: `mode-btn ${mode === 'lava' ? 'active' : ''}`, onClick: () => setMode('lava'), children: "\uD83C\uDF0B Lava" }), _jsx("button", { className: `mode-btn ${mode === 'bubbles' ? 'active' : ''}`, onClick: () => setMode('bubbles'), children: "\u2728 Bubbles" }), _jsx("button", { className: `mode-btn ${mode === 'ink' ? 'active' : ''}`, onClick: () => setMode('ink'), children: "\uD83D\uDCA7 Ink" }), _jsx("button", { className: `mode-btn ${mode === 'particles' ? 'active' : ''}`, onClick: () => setMode('particles'), children: "\u2726 Particles" })] })] })] })] }));
 }
