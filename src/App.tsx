@@ -122,7 +122,7 @@ export default function App() {
         <div className="header">
           <h1>Lava Lamp</h1>
           <button className="mic-button" onClick={toggleAudio}>
-            {!isInitialized ? '🎤 Enable Microphone' : '🎤 Disable Microphone'}
+            {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
           </button>
         </div>
 

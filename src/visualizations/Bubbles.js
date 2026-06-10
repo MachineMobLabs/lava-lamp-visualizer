@@ -7,58 +7,52 @@ export class Bubbles {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "particles", {
+        Object.defineProperty(this, "bubbles", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: []
         });
         this.p = p;
+        this.createBubbles(50);
     }
     setSpeed(_speed) {
         // Controlled by intensity
     }
     draw(intensity) {
-        const freqData = audioInput.getFrequencyData();
-        if (!freqData)
-            return;
-        const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
-        const bass = audioInput.getFrequencyBand(0, 40) / 255;
-        const treble = audioInput.getFrequencyBand(100, 256) / 255;
-        // Light trail effect
-        this.p.fill(10, 10, 10, 20);
+        // Clear canvas with slight fade
+        this.p.fill(10, 10, 10, 30);
         this.p.rect(0, 0, this.p.width, this.p.height);
-        // Much lower threshold, spawn aggressively
-        if (avgFreq > 0.005) {
-            const spawnCount = Math.floor(Math.max(bass, avgFreq) * 100 * intensity) + 2;
-            for (let i = 0; i < spawnCount; i++) {
-                if (this.particles.length < 150) {
-                    this.particles.push(new Particle(this.p, treble));
-                }
-            }
+        // Get audio data
+        const avgFreq = audioInput.getAverageFrequency() / 255;
+        const audioSensitivity = Math.pow(avgFreq, 0.5); // Boost quiet sounds
+        // Update and draw bubbles
+        for (let bubble of this.bubbles) {
+            bubble.move(intensity, audioSensitivity);
+            bubble.draw(this.p);
         }
-        else if (this.particles.length === 0) {
-            // Clear only if no particles remain
-            this.particles = [];
-        }
-        // Update and display
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            this.particles[i].update(avgFreq, bass, treble, intensity);
-            this.particles[i].display();
-            if (this.particles[i].isDead()) {
-                this.particles.splice(i, 1);
-            }
+    }
+    createBubbles(max) {
+        const colors = [
+            'rgba(75,0,130,1)',
+            'rgba(25,25,112,1)',
+            'rgba(143,188,143,1)',
+            'rgba(47,79,79,1)',
+            'rgba(0,139,139,1)',
+            'rgba(139,0,0,1)',
+        ];
+        for (let i = 0; i < max; i++) {
+            const x = Math.random() * this.p.width;
+            const y = Math.random() * this.p.height;
+            const radius = Math.floor(Math.random() * 50) + 15;
+            const baseColor = colors[Math.floor(Math.random() * colors.length)];
+            const accentColor = 'rgba(248,248,255,1)';
+            this.bubbles.push(new Bubble(x, y, radius, baseColor, accentColor, 1, this.p));
         }
     }
 }
-class Particle {
-    constructor(p, treble) {
-        Object.defineProperty(this, "p", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+class Bubble {
+    constructor(x, y, radius, baseColor, accentColor, lineWidth, p) {
         Object.defineProperty(this, "x", {
             enumerable: true,
             configurable: true,
@@ -71,106 +65,130 @@ class Particle {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "vx", {
+        Object.defineProperty(this, "baseRadius", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "vy", {
+        Object.defineProperty(this, "radius", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "size", {
+        Object.defineProperty(this, "baseColor", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "hue", {
+        Object.defineProperty(this, "accentColor", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "life", {
+        Object.defineProperty(this, "lineWidth", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "dx", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "dy", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "p", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
         this.p = p;
-        this.x = p.random(p.width);
-        this.y = p.height + 20;
-        this.vx = (p.random() - 0.5) * 1.5;
-        this.vy = -p.random() * (2 + treble * 3);
-        this.size = p.random() * 30 + 10;
-        this.hue = p.random() * 60 + 20;
-        this.life = 1;
+        this.x = x;
+        this.y = y;
+        this.baseRadius = radius;
+        this.radius = radius;
+        this.baseColor = baseColor;
+        this.accentColor = accentColor;
+        this.lineWidth = lineWidth;
+        // Half speed from original (originally 2-1, now 1-0.5)
+        this.dx = (Math.random() * 1) - 0.5;
+        this.dy = (Math.random() * 1) + 0.5;
     }
-    update(avgFreq, bass, treble, intensity) {
-        // Smooth velocity interpolation for responsive movement
-        this.vx = this.vx * 0.95 + (treble - 0.5) * 1.5 * intensity * 0.05;
-        this.vy = this.vy * 0.98 + (-bass * 2) * 0.02;
-        this.x += this.vx;
-        this.y += this.vy * (1 + intensity);
-        this.vy *= 0.98;
-        this.life -= 0.005;
-        // Size highly responsive - smooth interpolation
-        const targetSize = 10 + avgFreq * 20 + treble * 30;
-        this.size = this.size * 0.9 + targetSize * 0.1;
+    move(intensity, audioSensitivity) {
+        // Audio affects velocity - faster with sound
+        const speedMultiplier = 1 + audioSensitivity * 2;
+        const finalDx = this.dx * speedMultiplier * intensity;
+        const finalDy = this.dy * speedMultiplier * intensity;
+        // Bounce off sides
+        if (this.x + this.radius >= this.p.width) {
+            this.dx = Math.abs(this.dx) * -1;
+        }
+        else if (this.x - this.radius <= 0) {
+            this.dx = Math.abs(this.dx);
+        }
+        // Reset y when below canvas
+        if (this.y < -this.radius) {
+            this.y = this.p.height + this.radius;
+        }
+        this.x += finalDx;
+        this.y -= finalDy;
+        // Audio affects size - pulses with sound
+        const sizeMultiplier = 1 + audioSensitivity * 0.6;
+        this.radius = this.baseRadius * sizeMultiplier;
     }
-    display() {
-        const h = this.hue;
-        const s = 80;
-        const l = 50;
-        // Convert HSL to RGB
-        const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
-        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-        const m = (l / 100) - c / 2;
-        let r = 0, g = 0, b = 0;
-        if (h < 60) {
-            r = c;
-            g = x;
-            b = 0;
-        }
-        else if (h < 120) {
-            r = x;
-            g = c;
-            b = 0;
-        }
-        else if (h < 180) {
-            r = 0;
-            g = c;
-            b = x;
-        }
-        else if (h < 240) {
-            r = 0;
-            g = x;
-            b = c;
-        }
-        else if (h < 300) {
-            r = x;
-            g = 0;
-            b = c;
-        }
-        else {
-            r = c;
-            g = 0;
-            b = x;
-        }
-        r = Math.round((r + m) * 255);
-        g = Math.round((g + m) * 255);
-        b = Math.round((b + m) * 255);
-        this.p.fill(r, g, b, this.life * 0.3 * 255);
-        this.p.noStroke();
-        this.p.ellipse(this.x, this.y, this.size, this.size);
-        this.p.fill(r, g, b, this.life * 0.15 * 255);
-        this.p.ellipse(this.x, this.y, this.size * 1.4, this.size * 1.4);
+    draw(p) {
+        const canvas = p.canvas;
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        // Create radial gradient
+        const gradient = this.createGradient(ctx);
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = this.baseColor;
+        ctx.lineWidth = this.lineWidth;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
+        ctx.restore();
     }
-    isDead() {
-        return this.life <= 0 || this.y < -50;
+    createGradient(ctx) {
+        const rgbBase = this.getRgbValues(this.baseColor);
+        const rgbAccent = this.getRgbValues(this.accentColor);
+        const alphas = [0.8, 0.6, 0.3, 0.5, 0.8];
+        const colorStops = [0, 0.25, 0.5, 0.85, 1];
+        const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x - this.radius / 2, this.y - this.radius / 2, 0);
+        for (let i = 0; i < alphas.length; i++) {
+            let rgb;
+            if (i === alphas.length - 1 || i === alphas.length - 2) {
+                rgb = rgbAccent;
+            }
+            else {
+                rgb = rgbBase;
+            }
+            const colorStr = `rgba(${rgb.r},${rgb.g},${rgb.b},${alphas[i]})`;
+            gradient.addColorStop(colorStops[i], colorStr);
+        }
+        return gradient;
+    }
+    getRgbValues(rgbString) {
+        const commaOne = rgbString.indexOf(',', 0);
+        const commaTwo = rgbString.indexOf(',', commaOne + 1);
+        const commaThree = rgbString.indexOf(',', commaTwo + 1);
+        const r = rgbString.substring(5, commaOne);
+        const g = rgbString.substring(commaOne + 1, commaTwo);
+        const b = rgbString.substring(commaTwo + 1, commaThree);
+        return { r, g, b };
     }
 }
