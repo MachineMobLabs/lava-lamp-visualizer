@@ -43,8 +43,7 @@ export class InkDrift {
         const distance = Math.random() * 40 + 20;
         this.particles.push(new InkParticle(
           centerX + Math.cos(angle) * distance,
-          centerY + Math.sin(angle) * distance,
-          this.noiseOffset
+          centerY + Math.sin(angle) * distance
         ));
       }
     }
@@ -57,7 +56,7 @@ export class InkDrift {
     // Update and display particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       this.particles[i].update(this.p, this.noiseOffset, intensity, bass, treble);
-      this.particles[i].display(this.p, ctx);
+      this.particles[i].display(this.p);
 
       if (this.particles[i].isDead()) {
         this.particles.splice(i, 1);
@@ -80,7 +79,7 @@ class InkParticle {
   hue: number;
   noisePhase: number;
 
-  constructor(x: number, y: number, noiseOffset: number) {
+  constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
     this.maxLife = 0.8 + Math.random() * 0.4;
@@ -129,7 +128,7 @@ class InkParticle {
     this.size *= 0.98;
   }
 
-  display(p: p5, ctx: CanvasRenderingContext2D): void {
+  display(p: p5): void {
     // HSL to RGB conversion for vibrant colors
     const h = this.hue;
     const s = 80 + this.life * 20; // More saturated when young

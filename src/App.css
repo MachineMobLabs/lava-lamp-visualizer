@@ -19,35 +19,24 @@
 }
 
 .toggle-controls {
-  position: fixed;
-  bottom: auto;
-  top: calc(100vh - 140px);
+  position: absolute;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff8c00, #ff6b35);
   border: none;
   color: white;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   z-index: 11;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.toggle-controls:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.5);
-}
-
-.toggle-controls:active {
-  transform: scale(0.95);
 }
 
 .controls {
