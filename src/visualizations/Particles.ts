@@ -74,7 +74,7 @@ class Particle {
     this.baseSize = 2 + audioSensitivity * 3; // 2-5px based on audio
   }
 
-  update(intensity: number, audioSensitivity: number): void {
+  update(intensity: number, _audioSensitivity: number): void {
     this.x += this.vx * intensity;
     this.y += this.vy * intensity;
     this.vx *= 0.98;
