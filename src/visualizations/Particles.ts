@@ -3,10 +3,24 @@ import { audioInput } from '../AudioInput';
 
 export class Particles {
   private p: p5;
-  private particles: Particle[] = [];
+  private particles: ColorfulParticle[];
 
   constructor(p: p5) {
     this.p = p;
+    this.particles = [];
+
+    // Pre-create fixed particle pool divided into 3 staggered partitions
+    // Each partition activates with a delay so particles are always on screen
+    for (let i = 0; i < 450; i++) {
+      const x = Math.random() * p.width;
+      const y = Math.random() * p.height;
+      // Divide into 3 groups with staggered delays:
+      // Partition 1: 0-3 seconds, Partition 2: 3-6 seconds, Partition 3: 6-9 seconds
+      const partition = Math.floor(i / 150); // 0, 1, or 2
+      const baseDelay = partition * 3;
+      const delayBeforeActivation = baseDelay + Math.random() * 3;
+      this.particles.push(new ColorfulParticle(x, y, delayBeforeActivation));
+    }
   }
 
   setSpeed(_speed: number): void {
@@ -22,67 +36,80 @@ export class Particles {
     this.p.fill(10, 10, 10, 5);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Audio-driven spawn rate - more particles with louder audio
-    const baseSpawnRate = intensity * 15;
-    const audioBoost = audioSensitivity * 4;
-    const spawnRate = baseSpawnRate + audioBoost;
+    // Audio drives activation rate - more particles activate with louder audio
+    const baseActivationRate = intensity * 0.5;
+    const audioBoost = audioSensitivity * 3;
+    const activationRate = baseActivationRate + audioBoost;
 
-    // Spawn particles randomly across entire screen (not from center)
-    for (let i = 0; i < spawnRate; i++) {
-      if (this.particles.length < 500) {
-        const x = Math.random() * this.p.width;
-        const y = Math.random() * this.p.height;
-        this.particles.push(new Particle(this.p, x, y, audioSensitivity));
-      }
-    }
+    // Update and display all particles in fixed pool
+    for (let i = 0; i < this.particles.length; i++) {
+      const particle = this.particles[i];
 
-    // Update and display
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      this.particles[i].update(intensity, audioSensitivity);
-      this.particles[i].display(audioSensitivity);
-
-      if (this.particles[i].isDead()) {
-        this.particles.splice(i, 1);
-      }
+      // Activation chance based on audio and time delay
+      const canActivate = Math.random() < activationRate;
+      particle.update(canActivate, intensity, audioSensitivity, this.p);
+      particle.display(this.p, audioSensitivity);
     }
   }
 }
 
-class Particle {
-  private p: p5;
+class ColorfulParticle {
   x: number;
   y: number;
   vx: number;
   vy: number;
   life: number;
-  maxLife: number;
+  maxLife: number = 2.5;
   hue: number;
   baseSize: number;
+  timeSinceSpawn: number = 0;
+  delayBeforeActivation: number;
 
-  constructor(p: p5, x: number, y: number, audioSensitivity: number) {
-    this.p = p;
+  constructor(x: number, y: number, delayBeforeActivation: number) {
     this.x = x;
     this.y = y;
-    // Audio-responsive movement
-    const baseSpeed = 1 + audioSensitivity * 2;
-    this.vx = (Math.random() - 0.5) * 4 * baseSpeed;
-    this.vy = (Math.random() - 0.5) * 4 * baseSpeed;
-    this.maxLife = 1;
-    this.life = 1;
+    this.delayBeforeActivation = delayBeforeActivation;
+    this.life = 0;
     this.hue = Math.random() * 360;
-    // Audio-responsive size
-    this.baseSize = 2 + audioSensitivity * 3; // 2-5px based on audio
+    this.baseSize = 2; // Base size, will be boosted by audio during activation
+    this.vx = 0;
+    this.vy = 0;
   }
 
-  update(intensity: number, _audioSensitivity: number): void {
-    this.x += this.vx * intensity;
-    this.y += this.vy * intensity;
-    this.vx *= 0.98;
-    this.vy *= 0.98;
-    this.life -= 1 / this.maxLife * 0.008; // ~60fps fade (2x slower)
+  update(canActivate: boolean, intensity: number, audioSensitivity: number, p: p5): void {
+    // Increment time counter for staggering
+    this.timeSinceSpawn += 0.016; // ~60fps
+
+    // Only activate after delay has passed AND activation signal is true
+    if (canActivate && this.life <= 0 && this.timeSinceSpawn > this.delayBeforeActivation) {
+      this.life = this.maxLife;
+
+      // Spawn at random location on screen using p5 canvas dimensions
+      this.x = Math.random() * p.width;
+      this.y = Math.random() * p.height;
+
+      // Audio-responsive movement speed
+      const baseSpeed = 1 + audioSensitivity * 2;
+      this.vx = (Math.random() - 0.5) * 4 * baseSpeed;
+      this.vy = (Math.random() - 0.5) * 4 * baseSpeed;
+
+      // Audio-responsive size
+      this.baseSize = 2 + audioSensitivity * 3; // 2-5px based on audio
+    }
+
+    // Update active particles
+    if (this.life > 0) {
+      this.x += this.vx * intensity;
+      this.y += this.vy * intensity;
+      this.vx *= 0.98;
+      this.vy *= 0.98;
+      this.life -= 1 / this.maxLife * 0.008; // ~60fps fade (2x slower)
+    }
   }
 
-  display(audioSensitivity: number): void {
+  display(p: p5, audioSensitivity: number): void {
+    if (this.life <= 0) return; // Only draw active particles
+
     const h = this.hue;
     const s = 100;
     const l = 60;
@@ -104,16 +131,12 @@ class Particle {
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
 
-    // Audio-responsive pulsing - particles expand with louder audio (like Bubbles)
+    // Audio-responsive pulsing - each particle pulses with louder audio
     const sizeMultiplier = 1 + audioSensitivity * 0.6;
     const displaySize = this.baseSize * this.life * sizeMultiplier;
 
-    this.p.fill(r, g, b, this.life * 0.8 * 255);
-    this.p.noStroke();
-    this.p.rect(this.x, this.y, displaySize, displaySize);
-  }
-
-  isDead(): boolean {
-    return this.life <= 0;
+    p.fill(r, g, b, this.life * 0.8 * 255);
+    p.noStroke();
+    p.rect(this.x, this.y, displaySize, displaySize);
   }
 }
