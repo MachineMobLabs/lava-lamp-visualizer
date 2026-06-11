@@ -87,8 +87,8 @@ class InkParticle {
     if (canActivate && this.life <= 0 && this.timeSinceSpawn > this.delayBeforeActivation) {
       this.life = this.maxLife;
 
-      // Audio-responsive size - bigger particles with louder audio
-      this.baseSize = 15 + audioSensitivity * 40; // 15-55px based on audio
+      // Audio-responsive size - bigger particles with louder audio (30% bigger boost)
+      this.baseSize = 15 + audioSensitivity * 52; // 15-67px based on audio (30% bigger)
       this.size = this.baseSize;
 
       // Spawn at random location on screen
