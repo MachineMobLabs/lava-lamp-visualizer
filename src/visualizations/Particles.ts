@@ -148,8 +148,9 @@ class ColorfulParticle {
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
 
-    // Audio-responsive pulsing - each particle pulses with louder audio
-    const sizeMultiplier = 1 + audioSensitivity * 0.6;
+    // Audio-responsive pulsing - PRONOUNCED effect, particles expand significantly with audio
+    // 1x to 3x size range for maximum visual impact (0.6 was too subtle)
+    const sizeMultiplier = 1 + audioSensitivity * 2.0;
     const displaySize = this.baseSize * this.life * sizeMultiplier;
 
     p.fill(r, g, b, this.life * 0.8 * 255);

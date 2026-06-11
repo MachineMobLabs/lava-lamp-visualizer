@@ -17,6 +17,7 @@ export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const visualizationRef = useRef<LavaLamp | Bubbles | InkDrift | Particles | null>(null);
   const p5InstanceRef = useRef<p5 | null>(null);
@@ -36,6 +37,27 @@ export default function App() {
       } catch (err) {
         setError('Microphone access denied. Please grant permission to use this app.');
         console.error(err);
+      }
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      // Enter fullscreen
+      const element = p5ContainerRef.current;
+      if (element) {
+        element.requestFullscreen().catch(() => {
+          // Fallback: try webkit/moz versions
+          (element as any).webkitRequestFullscreen?.();
+          (element as any).mozRequestFullScreen?.();
+        });
+        setIsFullscreen(true);
+      }
+    } else {
+      // Exit fullscreen
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
       }
     }
   };
@@ -133,9 +155,14 @@ export default function App() {
         <div className="header">
           <div className="header-top">
             <h1>Visualizer:</h1>
-            <button className="mic-button" onClick={toggleAudio}>
-              {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
-            </button>
+            <div className="button-group">
+              <button className="mic-button" onClick={toggleAudio}>
+                {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
+              </button>
+              <button className="mic-button" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+                {isFullscreen ? '⛶ Exit Fullscreen' : '⛶ Fullscreen'}
+              </button>
+            </div>
           </div>
           <hr className="header-divider" />
           <p>Works solo or with your mic. Click <i>Enable Microphone</i> to watch your audio come to life.</p>
