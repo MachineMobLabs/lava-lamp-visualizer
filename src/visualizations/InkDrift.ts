@@ -96,9 +96,8 @@ class InkParticle {
     if (this.life <= 0) return; // Only draw active particles
 
     const spacing = 10;
-    const opacity = 200; // Solid opacity, no transparency
 
-    p.fill(164, 164, 164, opacity);
+    p.fill(164, 164, 164, 255); // Fully opaque, no transparency
     p.noStroke();
 
     // Center ellipse at 2x size (biggest)
