@@ -15,27 +15,31 @@ export class Particles {
 
   draw(intensity: number): void {
     const freqData = audioInput.getFrequencyData();
-    if (!freqData) return;
+    let avgFreq = 0;
+    let treble = 0;
 
-    const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
-    const treble = audioInput.getFrequencyBand(100, 256) / 255;
+    if (freqData) {
+      avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+      treble = audioInput.getFrequencyBand(100, 256) / 255;
+    }
 
     // Light trail effect
     this.p.fill(10, 10, 10, 5);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Much lower threshold, highly sensitive to treble
-    if (avgFreq > 0.003 || treble > 0.01) {
-      const centerX = this.p.width / 2;
-      const centerY = this.p.height / 2;
+    // Spawn particles with audio or continuously at base intensity
+    const baseSpawn = intensity * 20;
+    const spawnRate = Math.max(baseSpawn, (Math.max(avgFreq * 30, treble * 50) + 1) * intensity * 2);
 
-      for (let i = 0; i < Math.max(avgFreq * 30, treble * 50) * intensity + 1; i++) {
+    const centerX = this.p.width / 2;
+    const centerY = this.p.height / 2;
+
+    if (spawnRate > 0 || this.particles.length < 100) {
+      for (let i = 0; i < spawnRate; i++) {
         if (this.particles.length < 600) {
           this.particles.push(new Particle(this.p, centerX, centerY));
         }
       }
-    } else if (this.particles.length === 0) {
-      this.particles = [];
     }
 
     // Update and display
@@ -74,7 +78,7 @@ class Particle {
     this.y += this.vy * intensity;
     this.vx *= 0.98;
     this.vy *= 0.98;
-    this.life -= 0.01;
+    this.life -= 0.005;
   }
 
   display(): void {
@@ -99,9 +103,9 @@ class Particle {
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
 
-    this.p.fill(r, g, b, this.life * 0.6 * 255);
+    this.p.fill(r, g, b, this.life * 0.8 * 255);
     this.p.noStroke();
-    this.p.rect(this.x, this.y, 2, 2);
+    this.p.rect(this.x, this.y, 3, 3);
   }
 
   isDead(): boolean {

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm install *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'Fix canvas sizing and polish controls UI *)"
+      "Bash(git commit -m 'Fix canvas sizing and polish controls UI *)",
+      "Bash(git commit -m 'Enable smooth animations without audio input *)"
     ]
   }
 }

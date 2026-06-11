@@ -15,31 +15,33 @@ export class InkDrift {
 
   draw(intensity: number): void {
     const freqData = audioInput.getFrequencyData();
-    if (!freqData) return;
+    let avgFreq = 0;
+    let bass = 0;
+    let treble = 0;
 
-    const avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
-    const bass = audioInput.getFrequencyBand(0, 40) / 255;
-    const treble = audioInput.getFrequencyBand(100, 256) / 255;
+    if (freqData) {
+      avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+      bass = audioInput.getFrequencyBand(0, 40) / 255;
+      treble = audioInput.getFrequencyBand(100, 256) / 255;
+    }
 
     // Light trail effect
     this.p.fill(10, 10, 10, 15);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Much lower threshold, spawn on treble for responsiveness
-    if (avgFreq > 0.003 || treble > 0.01) {
-      const spawnChance = 0.2 + treble * 0.4;
-      if (Math.random() < spawnChance) {
-        const centerX = this.p.width / 2;
-        const centerY = this.p.height / 2;
-        this.trails.push(new Trail(
-          this.p,
-          centerX + (Math.random() - 0.5) * 200,
-          centerY + (Math.random() - 0.5) * 200,
-          Math.random() * 360
-        ));
-      }
-    } else if (this.trails.length === 0) {
-      this.trails = [];
+    // Spawn trails with audio or continuously at base intensity
+    const baseSpawnChance = intensity * 0.6;
+    const spawnChance = Math.max(baseSpawnChance, 0.3 + treble * 0.5);
+
+    if (Math.random() < spawnChance) {
+      const centerX = this.p.width / 2;
+      const centerY = this.p.height / 2;
+      this.trails.push(new Trail(
+        this.p,
+        centerX + (Math.random() - 0.5) * 200,
+        centerY + (Math.random() - 0.5) * 200,
+        Math.random() * 360
+      ));
     }
 
     // Update and display
