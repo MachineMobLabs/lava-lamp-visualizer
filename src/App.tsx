@@ -112,11 +112,14 @@ export default function App() {
 
       <div className="controls">
         <div className="header">
-          <h1>Visualizer:</h1>
+          <div className="header-top">
+            <h1>Visualizer:</h1>
+            <button className="mic-button" onClick={toggleAudio}>
+              {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
+            </button>
+          </div>
+          <hr className="header-divider" />
           <p>Works solo or with your mic. Click <i>Enable Microphone</i> to watch your audio come to life.</p>
-          <button className="mic-button" onClick={toggleAudio}>
-            {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
-          </button>
         </div>
 
         {error && <div className="error">{error}</div>}

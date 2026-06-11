@@ -23,20 +23,31 @@
   bottom: 0;
   left: 0;
   right: 0;
+  width: 100%;
   background: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(10px);
   border-top: 2px solid rgba(255, 140, 0, 0.3);
   padding: 20px;
-  max-width: 600px;
+  box-sizing: border-box;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
   z-index: 10;
 }
 
 .header {
+  margin-bottom: 20px;
+}
+
+.header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.header-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 140, 0, 0.2);
+  margin: 12px 0;
 }
 
 .header h1 {
@@ -47,6 +58,13 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.header p {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .status {
