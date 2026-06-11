@@ -63,11 +63,20 @@ class InkParticle {
   baseSize: number = 0;
   timeSinceSpawn: number = 0;
   delayBeforeActivation: number;
+  // Pre-generate random positions for the 5 additional ellipses
+  randomEllipses: Array<{ angle: number; distance: number }>;
 
   constructor(x: number, y: number, delayBeforeActivation: number) {
     this.x = x;
     this.y = y;
     this.delayBeforeActivation = delayBeforeActivation;
+    // Generate 5 random ellipse positions with minimum 10px distance
+    this.randomEllipses = [];
+    for (let i = 0; i < 5; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * 40 + 10; // 10-50px distance minimum
+      this.randomEllipses.push({ angle, distance });
+    }
   }
 
   update(isActive: boolean, audioSize: number, _intensity: number, _avgFreq: number, _bass: number, _treble: number): void {
@@ -115,5 +124,13 @@ class InkParticle {
 
     // Left ellipse - 0.25x size
     p.ellipse(this.x - this.size * 0.25 - spacing, this.y, this.size * 0.25);
+
+    // Five additional randomly-placed ellipses at 0.25x size
+    const smallSize = this.size * 0.25;
+    for (const ellipse of this.randomEllipses) {
+      const posX = this.x + Math.cos(ellipse.angle) * ellipse.distance;
+      const posY = this.y + Math.sin(ellipse.angle) * ellipse.distance;
+      p.ellipse(posX, posY, smallSize);
+    }
   }
 }
