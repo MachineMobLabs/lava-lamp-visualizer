@@ -1,0 +1,249 @@
+.license-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.license-modal {
+  background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(30, 20, 30, 0.95));
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 0 40px rgba(255, 140, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.license-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.license-header h2 {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #ff8c00, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.license-header p {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
+}
+
+.license-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  padding: 12px;
+  background: rgba(255, 140, 0, 0.05);
+  border: 1px solid rgba(255, 140, 0, 0.25);
+  border-radius: 6px;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: rgba(255, 140, 0, 0.6);
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.2);
+  background: rgba(255, 140, 0, 0.08);
+}
+
+.form-group input::placeholder {
+  color: #666;
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.unlock-button {
+  padding: 12px;
+  background: linear-gradient(135deg, #ff8c00, #ff6b35);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+}
+
+.unlock-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.5);
+}
+
+.unlock-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.unlock-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.license-hint {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  margin: 16px 0 0 0;
+}
+
+.license-hint a {
+  color: #ff8c00;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.license-hint a:hover {
+  color: #ff6b35;
+  text-decoration: underline;
+}
+
+.license-loader {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.pulse {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #ff8c00, #ff6b35);
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.license-loader p {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0;
+  animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.license-error {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 100, 100, 0.1);
+  border: 1px solid rgba(255, 100, 100, 0.2);
+  border-radius: 6px;
+  animation: slideUp 0.3s ease;
+}
+
+.error-message {
+  font-size: 14px;
+  color: #ff9999;
+  margin: 0 0 16px 0;
+}
+
+.retry-button {
+  padding: 10px 20px;
+  background: rgba(255, 140, 0, 0.2);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  color: #ff8c00;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.retry-button:hover {
+  background: rgba(255, 140, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.6);
+}
+
+@media (max-width: 600px) {
+  .license-modal {
+    padding: 30px 20px;
+  }
+
+  .license-header h2 {
+    font-size: 24px;
+  }
+
+  .form-group input {
+    font-size: 16px;
+  }
+}

@@ -11,62 +11,47 @@ export class InkDrift {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: []
-        });
-        Object.defineProperty(this, "noiseOffset", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
+            value: void 0
         });
         this.p = p;
+        this.particles = [];
+        // Pre-create fixed particle pool like Lava/Bubbles (no dynamic spawning)
+        // Stagger the timing so particles don't all spawn at once
+        for (let i = 0; i < 80; i++) {
+            const x = Math.random() * p.width;
+            const y = Math.random() * p.height;
+            // Stagger activation delay - spread particles over time
+            const delayBeforeActivation = Math.random() * 8; // 0-8 second stagger
+            this.particles.push(new InkParticle(x, y, delayBeforeActivation));
+        }
     }
     setSpeed(_speed) {
         // Controlled by intensity
     }
     draw(intensity) {
-        const freqData = audioInput.getFrequencyData();
-        let avgFreq = 0;
-        let bass = 0;
-        let treble = 0;
-        if (freqData) {
-            avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
-            bass = audioInput.getFrequencyBand(0, 40) / 255;
-            treble = audioInput.getFrequencyBand(100, 256) / 255;
+        // Get audio data - same method as Lava/Bubbles
+        const avgFreq = audioInput.getAverageFrequency() / 255;
+        const audioSensitivity = Math.pow(avgFreq, 0.5); // Boost quiet sounds (square root)
+        // Audio drives spawn rate - more particles appear with louder audio
+        // Base spawn rate + audio boost
+        const baseSpawnRate = intensity * 0.5;
+        const audioBoost = audioSensitivity * 3; // Audio significantly increases spawn rate
+        const spawnRate = baseSpawnRate + audioBoost;
+        // Update and display all particles
+        for (let i = 0; i < this.particles.length; i++) {
+            const particle = this.particles[i];
+            // More aggressive activation with audio
+            // Each frame, particles have a chance to activate based on:
+            // - How much time has passed (they still have delays)
+            // - Current audio level (higher audio = more particles activate)
+            const activationChance = Math.random() < spawnRate;
+            particle.update(activationChance, audioSensitivity);
+            particle.display(this.p);
         }
-        // Increment noise offset for flowing effect
-        this.noiseOffset += 0.01;
-        // Spawn particles with audio or continuously at base intensity
-        const baseSpawnRate = intensity * 8;
-        const spawnRate = Math.max(baseSpawnRate, (avgFreq * 20 + treble * 30) * intensity);
-        const centerX = this.p.width / 2;
-        const centerY = this.p.height / 2;
-        for (let i = 0; i < spawnRate; i++) {
-            if (this.particles.length < 800) {
-                // Spawn particles in a circle around center
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 40 + 20;
-                this.particles.push(new InkParticle(centerX + Math.cos(angle) * distance, centerY + Math.sin(angle) * distance));
-            }
-        }
-        // Set blend mode for organic diffusion effect
-        const canvas = this.p.canvas;
-        const ctx = canvas.getContext('2d');
-        ctx.globalCompositeOperation = 'lighter';
-        // Update and display particles
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            this.particles[i].update(this.p, this.noiseOffset, intensity, bass, treble);
-            this.particles[i].display(this.p);
-            if (this.particles[i].isDead()) {
-                this.particles.splice(i, 1);
-            }
-        }
-        // Reset blend mode
-        ctx.globalCompositeOperation = 'source-over';
     }
 }
 class InkParticle {
-    constructor(x, y) {
+    constructor(x, y, delayBeforeActivation) {
         Object.defineProperty(this, "x", {
             enumerable: true,
             configurable: true,
@@ -79,43 +64,50 @@ class InkParticle {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "vx", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
-        Object.defineProperty(this, "vy", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: 0
-        });
         Object.defineProperty(this, "life", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: 1
+            value: 0
         });
         Object.defineProperty(this, "maxLife", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: 1
+            value: 2.5
         });
         Object.defineProperty(this, "size", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: void 0
+            value: 0
         });
-        Object.defineProperty(this, "hue", {
+        Object.defineProperty(this, "baseSize", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "timeSinceSpawn", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        });
+        Object.defineProperty(this, "delayBeforeActivation", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "noisePhase", {
+        Object.defineProperty(this, "colorCycle", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 0
+        }); // Color based on spawn time
+        // Pre-generate random positions and sizes for the 9 surrounding ellipses
+        Object.defineProperty(this, "randomEllipses", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -123,92 +115,54 @@ class InkParticle {
         });
         this.x = x;
         this.y = y;
-        this.maxLife = 0.8 + Math.random() * 0.4;
-        this.life = this.maxLife;
-        this.size = 2 + Math.random() * 3;
-        this.hue = Math.random() * 60 + 180; // Cyan to blue hues
-        this.noisePhase = Math.random() * 1000;
-    }
-    update(p, noiseOffset, intensity, bass, treble) {
-        // Use Perlin noise to create flowing velocity field
-        const noiseScale = 0.005;
-        const velocityScale = 1.5 + intensity * 0.5;
-        // Sample noise at slightly offset locations to create flow field
-        const noiseX = this.x * noiseScale + noiseOffset;
-        const noiseY = this.y * noiseScale + noiseOffset;
-        const noiseZ = this.noisePhase + noiseOffset;
-        // Create velocity vectors from noise using p5's noise function
-        const angle = (p.noise(noiseX, noiseY, noiseZ) * Math.PI * 2) - Math.PI;
-        const speed = 0.8 + (bass + treble) * 0.5;
-        this.vx = Math.cos(angle) * speed * velocityScale;
-        this.vy = Math.sin(angle) * speed * velocityScale;
-        // Add slight outward radial component
-        const centerX = p.width / 2;
-        const centerY = p.height / 2;
-        const dx = this.x - centerX;
-        const dy = this.y - centerY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 0) {
-            this.vx += (dx / dist) * 0.2;
-            this.vy += (dy / dist) * 0.2;
+        this.delayBeforeActivation = delayBeforeActivation;
+        // Generate 9 random ellipses with varied sizes (0.25x to 1x) and positions
+        this.randomEllipses = [];
+        for (let i = 0; i < 9; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 80 + 20; // 20-100px distance, 2x spacing
+            const sizeMultiplier = Math.random() * 0.75 + 0.25; // 0.25x to 1x size
+            this.randomEllipses.push({ angle, distance, sizeMultiplier });
         }
-        // Update position
-        this.x += this.vx;
-        this.y += this.vy;
-        // Fade life
-        this.life -= 1 / this.maxLife * 0.016; // Normalized fade
-        // Size decreases as particle ages
-        this.size *= 0.98;
+    }
+    update(canActivate, audioSensitivity) {
+        // Increment time counter for staggering
+        this.timeSinceSpawn += 0.016; // ~60fps
+        // Only activate after delay has passed AND activation signal is true
+        if (canActivate && this.life <= 0 && this.timeSinceSpawn > this.delayBeforeActivation) {
+            this.life = this.maxLife;
+            // Audio-responsive size - bigger particles with louder audio (30% bigger boost)
+            this.baseSize = 15 + audioSensitivity * 52; // 15-67px based on audio (30% bigger)
+            this.size = this.baseSize;
+            // Spawn at random location on screen
+            this.x = Math.random() * 1920; // Approximate max width
+            this.y = Math.random() * 1080; // Approximate max height
+            // Set unique color based on spawn time (cycles through color spectrum)
+            this.colorCycle = (this.timeSinceSpawn * 0.5) % 100;
+        }
+        // Update active particles
+        if (this.life > 0) {
+            this.life -= 1 / this.maxLife * 0.016; // ~60fps fade
+            this.size = this.baseSize * Math.max(0, this.life / this.maxLife);
+        }
     }
     display(p) {
-        // HSL to RGB conversion for vibrant colors
-        const h = this.hue;
-        const s = 80 + this.life * 20; // More saturated when young
-        const l = 50;
-        const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
-        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-        const m = (l / 100) - c / 2;
-        let r = 0, g = 0, b = 0;
-        if (h < 60) {
-            r = c;
-            g = x;
-            b = 0;
-        }
-        else if (h < 120) {
-            r = x;
-            g = c;
-            b = 0;
-        }
-        else if (h < 180) {
-            r = 0;
-            g = c;
-            b = x;
-        }
-        else if (h < 240) {
-            r = 0;
-            g = x;
-            b = c;
-        }
-        else if (h < 300) {
-            r = x;
-            g = 0;
-            b = c;
-        }
-        else {
-            r = c;
-            g = 0;
-            b = x;
-        }
-        r = Math.round((r + m) * 255);
-        g = Math.round((g + m) * 255);
-        b = Math.round((b + m) * 255);
-        // Opacity fades as particle travels
-        const opacity = this.life * 0.6 * 255;
-        p.fill(r, g, b, opacity);
+        if (this.life <= 0)
+            return; // Only draw active particles
+        // Calculate color based on spawn time (Lava-style color cycling)
+        const r = Math.floor(Math.sin(0.3 * this.colorCycle + 0) * 127 + 128);
+        const g = Math.floor(Math.sin(0.3 * this.colorCycle + 2) * 127 + 128);
+        const b = Math.floor(Math.sin(0.3 * this.colorCycle + 4) * 127 + 128);
+        p.fill(r, g, b, 255); // Fully opaque, dynamic color
         p.noStroke();
-        p.ellipse(this.x, this.y, this.size, this.size);
-    }
-    isDead() {
-        return this.life <= 0;
+        // Center ellipse at 2x size (fixed)
+        p.ellipse(this.x, this.y, this.size * 2);
+        // Nine randomly-placed ellipses with varied sizes (0.25x to 1x)
+        for (const ellipse of this.randomEllipses) {
+            const posX = this.x + Math.cos(ellipse.angle) * ellipse.distance;
+            const posY = this.y + Math.sin(ellipse.angle) * ellipse.distance;
+            const ellipseSize = this.size * ellipse.sizeMultiplier;
+            p.ellipse(posX, posY, ellipseSize);
+        }
     }
 }

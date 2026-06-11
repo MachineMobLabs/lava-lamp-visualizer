@@ -13,7 +13,8 @@
     "noFallthroughCasesInSwitch": true,
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["vite/client"]
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
