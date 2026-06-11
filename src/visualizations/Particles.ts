@@ -44,9 +44,11 @@ export class Particles {
     this.p.rect(0, 0, this.p.width, this.p.height);
 
     // Audio drives activation rate - more particles activate with louder audio
-    const baseActivationRate = intensity * 0.8; // Increased for testing
+    // With 450 particles, 13s fade duration, and visible overlapping partitions:
+    // Need high activation to keep canvas continuously populated
+    const baseActivationRate = intensity * 1.2; // High base rate for constant stream
     const audioBoost = audioSensitivity * 3;
-    const activationRate = baseActivationRate + audioBoost;
+    const activationRate = Math.min(1.0, baseActivationRate + audioBoost); // Cap at 100%
 
     // Update and display all particles in fixed pool
     for (let i = 0; i < this.particles.length; i++) {
@@ -106,17 +108,18 @@ class ColorfulParticle {
 
     // Update active particles
     if (this.life > 0) {
-      // Motion fades proportionally with opacity - stops moving as particle fades
-      // This ensures motion duration matches fade duration (~5.2 seconds)
-      const motionFactor = this.life / this.maxLife;
-      this.x += this.vx * intensity * motionFactor;
-      this.y += this.vy * intensity * motionFactor;
+      // Update position with velocity
+      this.x += this.vx * intensity;
+      this.y += this.vy * intensity;
 
-      // Velocity still decays for subtle slowdown effect
-      this.vx *= 0.98;
-      this.vy *= 0.98;
+      // CRITICAL: Velocity decay must match fade duration (13 seconds)
+      // Fade: 2.5 / (1/2.5 * 0.008) = ~781 frames = 13 seconds
+      // Velocity decay with 0.9974 keeps motion at ~20% after 13 seconds
+      // This ensures particles move for the ENTIRE fade duration, not just first 5 seconds
+      this.vx *= 0.9974;
+      this.vy *= 0.9974;
 
-      this.life -= 1 / this.maxLife * 0.008; // ~60fps fade (2x slower = ~5.2 seconds)
+      this.life -= 1 / this.maxLife * 0.008; // 13 seconds to completely fade
     }
   }
 
