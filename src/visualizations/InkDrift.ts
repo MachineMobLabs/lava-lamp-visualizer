@@ -127,7 +127,7 @@ class InkParticle {
     this.size *= 0.997; // Even slower decay
   }
 
-  display(_ctx: CanvasRenderingContext2D, p: p5, avgFreq: number, bass: number, treble: number): void {
+  display(_ctx: CanvasRenderingContext2D, p: p5, _avgFreq: number, bass: number, treble: number): void {
     // Draw light grey ink drops that fade with life (#c4c4c4)
     const opacity = Math.floor(this.life * 0.85 * 255);
 
