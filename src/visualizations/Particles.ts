@@ -20,12 +20,12 @@ export class Particles {
       // Partition 2: 1.5-3.5 seconds (overlaps Partition 1)
       // Partition 3: 3-5 seconds (overlaps Partition 2)
       // Result: Each partition starts before previous partition fades completely
-      const partition = Math.floor(i / 150); // 0, 1, or 2
-      // Short delays that overlap: particles appear quickly and continuously
-      // Partition 1: 0-0.5s, Partition 2: 0.3-0.8s, Partition 3: 0.6-1.1s
-      const baseDelay = partition * 0.3; // 0, 0.3, 0.6 seconds
-      const windowSize = 0.5; // Each partition spans 0.5 seconds
-      const delayBeforeActivation = baseDelay + Math.random() * windowSize;
+      // CRITICAL: Spread delays across full 13-second fade duration
+      // This creates CONTINUOUS appearance, not discrete waves
+      // Particle 0 activates at ~0s, particle 225 at ~6.5s, particle 449 at ~13s
+      const spreadDelay = (i / 450) * 13; // 0 to 13 seconds
+      const randomVariation = (Math.random() - 0.5) * 2; // ±1 second variation
+      const delayBeforeActivation = Math.max(0, spreadDelay + randomVariation);
       this.particles.push(new ColorfulParticle(x, y, delayBeforeActivation));
     }
   }
@@ -44,9 +44,10 @@ export class Particles {
     this.p.rect(0, 0, this.p.width, this.p.height);
 
     // Audio drives activation rate - more particles activate with louder audio
-    // With 450 particles, 13s fade duration, and visible overlapping partitions:
-    // Need high activation to keep canvas continuously populated
-    const baseActivationRate = intensity * 1.2; // High base rate for constant stream
+    // With 450 particles spread over 13s and continuous staggering:
+    // CRITICAL: Need VERY high activation to maintain dense particle stream
+    // ~35 particles per second should activate = intensity * 3+ needed
+    const baseActivationRate = intensity * 3.0; // Very aggressive for continuous stream
     const audioBoost = audioSensitivity * 3;
     const activationRate = Math.min(1.0, baseActivationRate + audioBoost); // Cap at 100%
 
