@@ -3,10 +3,18 @@ import { audioInput } from '../AudioInput';
 
 export class InkDrift {
   private p: p5;
-  private particles: InkParticle[] = [];
+  private particles: InkParticle[];
 
   constructor(p: p5) {
     this.p = p;
+    this.particles = [];
+
+    // Pre-create fixed particle pool like Lava/Bubbles (no dynamic spawning)
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * p.width;
+      const y = Math.random() * p.height;
+      this.particles.push(new InkParticle(x, y));
+    }
   }
 
   setSpeed(_speed: number): void {
@@ -25,27 +33,20 @@ export class InkDrift {
       treble = audioInput.getFrequencyBand(100, 256) / 255;
     }
 
-    // Spawn particles - heavily driven by audio presence
+    // Audio-driven activation - controls how many particles are "active"
     const audioAmount = Math.pow(avgFreq + bass + treble, 1.2);
-    const spawnRate = (intensity * 0.5) + (audioAmount * 8);
+    const activationThreshold = 0.3 + (audioAmount * 0.6); // 0.3-0.9 range
 
-    for (let i = 0; i < spawnRate; i++) {
-      if (this.particles.length < 150) {
-        const x = Math.random() * this.p.width;
-        const y = Math.random() * this.p.height;
-        const audioSize = 15 + audioAmount * 40; // Size responds to audio
-        this.particles.push(new InkParticle(x, y, audioSize, avgFreq, bass, treble));
-      }
-    }
+    // Update and display all particles
+    for (let i = 0; i < this.particles.length; i++) {
+      const particle = this.particles[i];
 
-    // Update and display particles
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      this.particles[i].update();
-      this.particles[i].display(this.p);
+      // Audio controls particle activation state
+      const isActive = Math.random() < activationThreshold;
+      const audioSize = 15 + audioAmount * 30; // Size responds to audio
 
-      if (this.particles[i].isDead()) {
-        this.particles.splice(i, 1);
-      }
+      particle.update(isActive, audioSize, intensity, avgFreq, bass, treble);
+      particle.display(this.p);
     }
   }
 }
@@ -53,39 +54,52 @@ export class InkDrift {
 class InkParticle {
   x: number;
   y: number;
-  life: number;
-  maxLife: number;
-  size: number;
-  baseSize: number;
-  opacity: number;
+  baseX: number;
+  baseY: number;
+  life: number = 0;
+  maxLife: number = 2.5;
+  size: number = 0;
+  baseSize: number = 0;
+  isActive: boolean = false;
 
-  constructor(x: number, y: number, size: number, _avgFreq: number, _bass: number, _treble: number) {
+  constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
-    this.baseSize = size;
-    this.size = size;
-    this.maxLife = 1.5 + Math.random() * 1;
-    this.life = this.maxLife;
-    this.opacity = 180 + Math.random() * 75;
+    this.baseX = x;
+    this.baseY = y;
   }
 
-  update(): void {
-    // Simple fade - no movement
-    this.life -= 1 / this.maxLife * 0.016; // ~60fps
+  update(isActive: boolean, audioSize: number, _intensity: number, _avgFreq: number, _bass: number, _treble: number): void {
+    // Activate particle if triggered by audio
+    if (isActive && this.life <= 0) {
+      this.life = this.maxLife;
+      this.baseSize = audioSize;
+      this.size = audioSize;
 
-    // Size decreases gently as it fades
-    const lifePercent = this.life / this.maxLife;
-    this.size = this.baseSize * lifePercent;
+      // Spawn at random location on screen
+      this.x = Math.random() * 1920; // Approximate max width
+      this.y = Math.random() * 1080; // Approximate max height
+    }
+
+    // Update active particles
+    if (this.life > 0) {
+      this.life -= 1 / this.maxLife * 0.016; // ~60fps fade
+
+      // Size decreases as it fades
+      const lifePercent = Math.max(0, this.life / this.maxLife);
+      this.size = this.baseSize * lifePercent;
+    }
   }
 
   display(p: p5): void {
-    // Composite splatter effect with 5 ellipses spaced apart
-    const opacity = Math.floor((this.life / this.maxLife) * this.opacity);
-    const spacing = 5; // 5px spacing between ellipses
+    if (this.life <= 0) return; // Only draw active particles
+
+    // Calculate opacity based on life
+    const opacity = Math.floor((this.life / this.maxLife) * 200);
+    const spacing = 5;
 
     p.fill(164, 164, 164, opacity);
     p.noStroke();
-    p.drawingContext.filter = 'blur(2px)';
 
     // Center ellipse at 2x size
     p.ellipse(this.x, this.y, this.size * 2);
@@ -98,11 +112,5 @@ class InkParticle {
     p.ellipse(this.x - offset, this.y, this.size * 0.5);
     p.ellipse(this.x + offset, this.y, this.size * 0.5);
     p.ellipse(this.x, this.y + offset, this.size * 0.5);
-
-    p.drawingContext.filter = 'none';
-  }
-
-  isDead(): boolean {
-    return this.life <= 0;
   }
 }
