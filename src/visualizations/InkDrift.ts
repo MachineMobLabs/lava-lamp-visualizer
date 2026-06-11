@@ -70,11 +70,11 @@ class InkParticle {
     this.x = x;
     this.y = y;
     this.delayBeforeActivation = delayBeforeActivation;
-    // Generate 5 random ellipse positions with minimum 10px distance
+    // Generate 5 random ellipse positions with 2x spacing (20-100px distance)
     this.randomEllipses = [];
     for (let i = 0; i < 5; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const distance = Math.random() * 40 + 10; // 10-50px distance minimum
+      const distance = Math.random() * 80 + 20; // 20-100px distance, 2x spacing
       this.randomEllipses.push({ angle, distance });
     }
   }
