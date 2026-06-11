@@ -39,7 +39,7 @@ export class Particles {
     // Update and display
     for (let i = this.particles.length - 1; i >= 0; i--) {
       this.particles[i].update(intensity, audioSensitivity);
-      this.particles[i].display();
+      this.particles[i].display(audioSensitivity);
 
       if (this.particles[i].isDead()) {
         this.particles.splice(i, 1);
@@ -79,10 +79,10 @@ class Particle {
     this.y += this.vy * intensity;
     this.vx *= 0.98;
     this.vy *= 0.98;
-    this.life -= 1 / this.maxLife * 0.016; // ~60fps fade
+    this.life -= 1 / this.maxLife * 0.008; // ~60fps fade (2x slower)
   }
 
-  display(): void {
+  display(audioSensitivity: number): void {
     const h = this.hue;
     const s = 100;
     const l = 60;
@@ -104,8 +104,10 @@ class Particle {
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
 
-    // Size and opacity scale with life
-    const displaySize = this.baseSize * this.life;
+    // Audio-responsive pulsing - particles expand with louder audio (like Bubbles)
+    const sizeMultiplier = 1 + audioSensitivity * 0.6;
+    const displaySize = this.baseSize * this.life * sizeMultiplier;
+
     this.p.fill(r, g, b, this.life * 0.8 * 255);
     this.p.noStroke();
     this.p.rect(this.x, this.y, displaySize, displaySize);
