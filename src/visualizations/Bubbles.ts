@@ -7,7 +7,7 @@ export class Bubbles {
 
   constructor(p: p5) {
     this.p = p;
-    this.createBubbles(50);
+    this.createBubbles(100);
   }
 
   setSpeed(_speed: number): void {

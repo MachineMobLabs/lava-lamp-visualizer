@@ -45,10 +45,13 @@ export class LavaLamp {
         });
         this.p = p;
         this.particles = [];
-        // Create temp canvas for metaball rendering
+        // Create temp canvas for metaball rendering - get dimensions from actual canvas
+        const canvas = p.canvas;
+        const width = canvas?.width || 800;
+        const height = canvas?.height || 600;
         this.tempCanvas = document.createElement('canvas');
-        this.tempCanvas.width = p.width;
-        this.tempCanvas.height = p.height;
+        this.tempCanvas.width = width;
+        this.tempCanvas.height = height;
         this.tempCtx = this.tempCanvas.getContext('2d');
         // Initialize 50 particles with random velocities (slowed down)
         for (let i = 0; i < 50; i++) {
@@ -64,6 +67,12 @@ export class LavaLamp {
         // Speed can be controlled via intensity slider if needed
     }
     draw(intensity) {
+        // Sync tempCanvas dimensions with actual p5 canvas (handles window resize)
+        const canvas = this.p.canvas;
+        if (canvas && (this.tempCanvas.width !== canvas.width || this.tempCanvas.height !== canvas.height)) {
+            this.tempCanvas.width = canvas.width;
+            this.tempCanvas.height = canvas.height;
+        }
         // Clear temp canvas
         this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
         // Get audio frequency data with high sensitivity (captures whispers and loud sounds)
@@ -113,6 +122,10 @@ export class LavaLamp {
         this.colorCycle(avgFreq);
     }
     metaballize() {
+        // Safety check: ensure canvas has valid dimensions
+        if (this.tempCanvas.width === 0 || this.tempCanvas.height === 0) {
+            return;
+        }
         const imageData = this.tempCtx.getImageData(0, 0, this.tempCanvas.width, this.tempCanvas.height);
         const pix = imageData.data;
         for (let i = 0; i < pix.length; i += 4) {

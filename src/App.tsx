@@ -57,9 +57,7 @@ export default function App() {
       };
 
       p.draw = function () {
-        p.background(10, 10, 10, 20); // Slight trail effect
-        p.fill(10, 10, 10, 20);
-        p.rect(0, 0, p.width, p.height);
+        p.background(10, 10, 10); // Clean black background, no trails
 
         if (visualizationRef.current) {
           visualizationRef.current.draw(INTENSITY);
