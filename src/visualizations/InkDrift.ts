@@ -15,6 +15,13 @@ export class InkDrift {
   }
 
   draw(intensity: number): void {
+    const canvas = (this.p as any).canvas as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d')!;
+
+    // Subtle fade to prevent trails from accumulating forever
+    ctx.fillStyle = 'rgba(10, 10, 10, 0.08)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     const freqData = audioInput.getFrequencyData();
     let avgFreq = 0;
     let bass = 0;
@@ -27,20 +34,20 @@ export class InkDrift {
     }
 
     // Increment noise offset for flowing effect
-    this.noiseOffset += 0.01;
+    this.noiseOffset += 0.008;
 
     // Spawn particles with audio or continuously at base intensity
-    const baseSpawnRate = intensity * 8;
-    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 20 + treble * 30) * intensity);
+    const baseSpawnRate = intensity * 2;
+    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 6 + treble * 10) * intensity);
 
     const centerX = this.p.width / 2;
     const centerY = this.p.height / 2;
 
     for (let i = 0; i < spawnRate; i++) {
-      if (this.particles.length < 800) {
-        // Spawn particles in a circle around center
+      if (this.particles.length < 150) {
+        // Spawn particles in a circle around center with more concentrated spread
         const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 40 + 20;
+        const distance = Math.random() * 60 + 10;
         this.particles.push(new InkParticle(
           centerX + Math.cos(angle) * distance,
           centerY + Math.sin(angle) * distance
@@ -48,23 +55,15 @@ export class InkDrift {
       }
     }
 
-    // Set blend mode for organic diffusion effect
-    const canvas = (this.p as any).canvas as HTMLCanvasElement;
-    const ctx = canvas.getContext('2d')!;
-    ctx.globalCompositeOperation = 'lighter';
-
     // Update and display particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       this.particles[i].update(this.p, this.noiseOffset, intensity, bass, treble);
-      this.particles[i].display(this.p);
+      this.particles[i].display(ctx, this.p);
 
       if (this.particles[i].isDead()) {
         this.particles.splice(i, 1);
       }
     }
-
-    // Reset blend mode
-    ctx.globalCompositeOperation = 'source-over';
   }
 }
 
@@ -76,23 +75,21 @@ class InkParticle {
   life: number = 1;
   maxLife: number = 1;
   size: number;
-  hue: number;
   noisePhase: number;
 
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
-    this.maxLife = 0.8 + Math.random() * 0.4;
+    this.maxLife = 1.2 + Math.random() * 0.6;
     this.life = this.maxLife;
-    this.size = 2 + Math.random() * 3;
-    this.hue = Math.random() * 60 + 180; // Cyan to blue hues
+    this.size = 20 + Math.random() * 30; // Large drops for dramatic ink effect (20-50px)
     this.noisePhase = Math.random() * 1000;
   }
 
   update(p: p5, noiseOffset: number, intensity: number, bass: number, treble: number): void {
     // Use Perlin noise to create flowing velocity field
-    const noiseScale = 0.005;
-    const velocityScale = 1.5 + intensity * 0.5;
+    const noiseScale = 0.004;
+    const velocityScale = 0.8 + intensity * 0.3;
 
     // Sample noise at slightly offset locations to create flow field
     const noiseX = this.x * noiseScale + noiseOffset;
@@ -101,20 +98,20 @@ class InkParticle {
 
     // Create velocity vectors from noise using p5's noise function
     const angle = (p.noise(noiseX, noiseY, noiseZ) * Math.PI * 2) - Math.PI;
-    const speed = 0.8 + (bass + treble) * 0.5;
+    const speed = 0.5 + (bass + treble) * 0.3;
 
     this.vx = Math.cos(angle) * speed * velocityScale;
     this.vy = Math.sin(angle) * speed * velocityScale;
 
-    // Add slight outward radial component
+    // Add strong outward radial component for spreading effect
     const centerX = p.width / 2;
     const centerY = p.height / 2;
     const dx = this.x - centerX;
     const dy = this.y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 0) {
-      this.vx += (dx / dist) * 0.2;
-      this.vy += (dy / dist) * 0.2;
+      this.vx += (dx / dist) * 0.3;
+      this.vy += (dy / dist) * 0.3;
     }
 
     // Update position
@@ -122,40 +119,18 @@ class InkParticle {
     this.y += this.vy;
 
     // Fade life
-    this.life -= 1 / this.maxLife * 0.016; // Normalized fade
+    this.life -= 1 / this.maxLife * 0.016;
 
     // Size decreases as particle ages
-    this.size *= 0.98;
+    this.size *= 0.96;
   }
 
-  display(p: p5): void {
-    // HSL to RGB conversion for vibrant colors
-    const h = this.hue;
-    const s = 80 + this.life * 20; // More saturated when young
-    const l = 50;
-
-    const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = (l / 100) - c / 2;
-
-    let r = 0, g = 0, b = 0;
-    if (h < 60) { r = c; g = x; b = 0; }
-    else if (h < 120) { r = x; g = c; b = 0; }
-    else if (h < 180) { r = 0; g = c; b = x; }
-    else if (h < 240) { r = 0; g = x; b = c; }
-    else if (h < 300) { r = x; g = 0; b = c; }
-    else { r = c; g = 0; b = x; }
-
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-
-    // Opacity fades as particle travels
-    const opacity = this.life * 0.6 * 255;
-
-    p.fill(r, g, b, opacity);
+  display(_ctx: CanvasRenderingContext2D, p: p5): void {
+    // Draw dark ink drops that fade with life
+    const opacity = Math.floor(this.life * 0.85 * 255);
+    p.fill(15, 15, 20, opacity);
     p.noStroke();
-    p.ellipse(this.x, this.y, this.size, this.size);
+    p.ellipse(this.x, this.y, this.size * 1.2);
   }
 
   isDead(): boolean {

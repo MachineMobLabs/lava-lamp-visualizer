@@ -20,7 +20,7 @@
 
 .toggle-controls {
   position: fixed;
-  bottom: 235px;
+  bottom: 225px;
   left: 50%;
   transform: translateX(-50%);
   width: 36px;
