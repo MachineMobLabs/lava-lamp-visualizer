@@ -79,13 +79,25 @@ class InkParticle {
   }
 
   display(p: p5): void {
-    // Simple blurred splatter
+    // Composite splatter effect with 5 ellipses
     const opacity = Math.floor((this.life / this.maxLife) * this.opacity);
 
     p.fill(164, 164, 164, opacity);
     p.noStroke();
     p.drawingContext.filter = 'blur(2px)';
+
+    // Center ellipse at 2x size
+    p.ellipse(this.x, this.y, this.size * 2);
+
+    // One ellipse at 1x size
     p.ellipse(this.x, this.y, this.size);
+
+    // Three ellipses at 0.5x size positioned around the center
+    const offset = this.size * 0.4;
+    p.ellipse(this.x - offset, this.y, this.size * 0.5);
+    p.ellipse(this.x + offset, this.y, this.size * 0.5);
+    p.ellipse(this.x, this.y + offset, this.size * 0.5);
+
     p.drawingContext.filter = 'none';
   }
 
