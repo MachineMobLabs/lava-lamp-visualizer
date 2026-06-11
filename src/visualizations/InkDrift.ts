@@ -25,30 +25,27 @@ export class InkDrift {
   }
 
   draw(intensity: number): void {
-    const freqData = audioInput.getFrequencyData();
-    let avgFreq = 0;
-    let bass = 0;
-    let treble = 0;
+    // Get audio data - same method as Lava/Bubbles
+    const avgFreq = audioInput.getAverageFrequency() / 255;
+    const audioSensitivity = Math.pow(avgFreq, 0.5); // Boost quiet sounds (square root)
 
-    if (freqData) {
-      avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
-      bass = audioInput.getFrequencyBand(0, 40) / 255;
-      treble = audioInput.getFrequencyBand(100, 256) / 255;
-    }
-
-    // Audio-driven activation - controls how many particles are "active"
-    const audioAmount = Math.pow(avgFreq + bass + treble, 1.2);
-    const activationThreshold = 0.3 + (audioAmount * 0.6); // 0.3-0.9 range
+    // Audio drives spawn rate - more particles appear with louder audio
+    // Base spawn rate + audio boost
+    const baseSpawnRate = intensity * 0.5;
+    const audioBoost = audioSensitivity * 3; // Audio significantly increases spawn rate
+    const spawnRate = baseSpawnRate + audioBoost;
 
     // Update and display all particles
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
 
-      // Audio controls particle activation state
-      const isActive = Math.random() < activationThreshold;
-      const audioSize = 15 + audioAmount * 30; // Size responds to audio
+      // More aggressive activation with audio
+      // Each frame, particles have a chance to activate based on:
+      // - How much time has passed (they still have delays)
+      // - Current audio level (higher audio = more particles activate)
+      const activationChance = Math.random() < spawnRate;
 
-      particle.update(isActive, audioSize, intensity, avgFreq, bass, treble);
+      particle.update(activationChance, audioSensitivity);
       particle.display(this.p);
     }
   }
@@ -71,6 +68,7 @@ class InkParticle {
     this.x = x;
     this.y = y;
     this.delayBeforeActivation = delayBeforeActivation;
+
     // Generate 9 random ellipses with varied sizes (0.25x to 1x) and positions
     this.randomEllipses = [];
     for (let i = 0; i < 9; i++) {
@@ -81,15 +79,17 @@ class InkParticle {
     }
   }
 
-  update(isActive: boolean, audioSize: number, _intensity: number, _avgFreq: number, _bass: number, _treble: number): void {
+  update(canActivate: boolean, audioSensitivity: number): void {
     // Increment time counter for staggering
     this.timeSinceSpawn += 0.016; // ~60fps
 
-    // Only activate after delay has passed
-    if (isActive && this.life <= 0 && this.timeSinceSpawn > this.delayBeforeActivation) {
+    // Only activate after delay has passed AND activation signal is true
+    if (canActivate && this.life <= 0 && this.timeSinceSpawn > this.delayBeforeActivation) {
       this.life = this.maxLife;
-      this.baseSize = audioSize;
-      this.size = audioSize;
+
+      // Audio-responsive size - bigger particles with louder audio
+      this.baseSize = 15 + audioSensitivity * 40; // 15-55px based on audio
+      this.size = this.baseSize;
 
       // Spawn at random location on screen
       this.x = Math.random() * 1920; // Approximate max width
