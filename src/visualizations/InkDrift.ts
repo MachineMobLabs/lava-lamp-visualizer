@@ -63,19 +63,20 @@ class InkParticle {
   baseSize: number = 0;
   timeSinceSpawn: number = 0;
   delayBeforeActivation: number;
-  // Pre-generate random positions for the 5 additional ellipses
-  randomEllipses: Array<{ angle: number; distance: number }>;
+  // Pre-generate random positions and sizes for the 9 surrounding ellipses
+  randomEllipses: Array<{ angle: number; distance: number; sizeMultiplier: number }>;
 
   constructor(x: number, y: number, delayBeforeActivation: number) {
     this.x = x;
     this.y = y;
     this.delayBeforeActivation = delayBeforeActivation;
-    // Generate 5 random ellipse positions with 2x spacing (20-100px distance)
+    // Generate 9 random ellipses with varied sizes (0.25x to 1x) and positions
     this.randomEllipses = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 9; i++) {
       const angle = Math.random() * Math.PI * 2;
       const distance = Math.random() * 80 + 20; // 20-100px distance, 2x spacing
-      this.randomEllipses.push({ angle, distance });
+      const sizeMultiplier = Math.random() * 0.75 + 0.25; // 0.25x to 1x size
+      this.randomEllipses.push({ angle, distance, sizeMultiplier });
     }
   }
 
@@ -104,33 +105,18 @@ class InkParticle {
   display(p: p5): void {
     if (this.life <= 0) return; // Only draw active particles
 
-    const spacing = 20; // 2x spacing from original 10px
-
     p.fill(164, 164, 164, 255); // Fully opaque, no transparency
     p.noStroke();
 
-    // Center ellipse at 2x size (biggest)
+    // Center ellipse at 2x size (fixed)
     p.ellipse(this.x, this.y, this.size * 2);
 
-    // Four surrounding ellipses at different sizes with 10px spacing
-    // Top ellipse - 1x size
-    p.ellipse(this.x, this.y - this.size - spacing, this.size);
-
-    // Right ellipse - 0.75x size
-    p.ellipse(this.x + this.size * 0.75 + spacing, this.y, this.size * 0.75);
-
-    // Bottom ellipse - 0.5x size
-    p.ellipse(this.x, this.y + this.size * 0.5 + spacing, this.size * 0.5);
-
-    // Left ellipse - 0.25x size
-    p.ellipse(this.x - this.size * 0.25 - spacing, this.y, this.size * 0.25);
-
-    // Five additional randomly-placed ellipses at 0.25x size
-    const smallSize = this.size * 0.25;
+    // Nine randomly-placed ellipses with varied sizes (0.25x to 1x)
     for (const ellipse of this.randomEllipses) {
       const posX = this.x + Math.cos(ellipse.angle) * ellipse.distance;
       const posY = this.y + Math.sin(ellipse.angle) * ellipse.distance;
-      p.ellipse(posX, posY, smallSize);
+      const ellipseSize = this.size * ellipse.sizeMultiplier;
+      p.ellipse(posX, posY, ellipseSize);
     }
   }
 }
