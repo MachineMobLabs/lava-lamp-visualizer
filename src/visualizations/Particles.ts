@@ -10,15 +10,22 @@ export class Particles {
     this.particles = [];
 
     // Pre-create fixed particle pool divided into 3 staggered partitions
-    // Each partition activates with a delay so particles are always on screen
+    // Each partition overlaps so particles always on screen even as others fade
+    // Fade duration is ~5.2 seconds, so partitions overlap significantly
     for (let i = 0; i < 450; i++) {
       const x = Math.random() * p.width;
       const y = Math.random() * p.height;
-      // Divide into 3 groups with staggered delays:
-      // Partition 1: 0-3 seconds, Partition 2: 3-6 seconds, Partition 3: 6-9 seconds
+      // Divide into 3 groups with OVERLAPPING delays:
+      // Partition 1: 0-2 seconds
+      // Partition 2: 1.5-3.5 seconds (overlaps Partition 1)
+      // Partition 3: 3-5 seconds (overlaps Partition 2)
+      // Result: Each partition starts before previous partition fades completely
       const partition = Math.floor(i / 150); // 0, 1, or 2
-      const baseDelay = partition * 3;
-      const delayBeforeActivation = baseDelay + Math.random() * 3;
+      // Short delays that overlap: particles appear quickly and continuously
+      // Partition 1: 0-0.5s, Partition 2: 0.3-0.8s, Partition 3: 0.6-1.1s
+      const baseDelay = partition * 0.3; // 0, 0.3, 0.6 seconds
+      const windowSize = 0.5; // Each partition spans 0.5 seconds
+      const delayBeforeActivation = baseDelay + Math.random() * windowSize;
       this.particles.push(new ColorfulParticle(x, y, delayBeforeActivation));
     }
   }
@@ -37,7 +44,7 @@ export class Particles {
     this.p.rect(0, 0, this.p.width, this.p.height);
 
     // Audio drives activation rate - more particles activate with louder audio
-    const baseActivationRate = intensity * 0.5;
+    const baseActivationRate = intensity * 0.8; // Increased for testing
     const audioBoost = audioSensitivity * 3;
     const activationRate = baseActivationRate + audioBoost;
 
@@ -99,11 +106,17 @@ class ColorfulParticle {
 
     // Update active particles
     if (this.life > 0) {
-      this.x += this.vx * intensity;
-      this.y += this.vy * intensity;
+      // Motion fades proportionally with opacity - stops moving as particle fades
+      // This ensures motion duration matches fade duration (~5.2 seconds)
+      const motionFactor = this.life / this.maxLife;
+      this.x += this.vx * intensity * motionFactor;
+      this.y += this.vy * intensity * motionFactor;
+
+      // Velocity still decays for subtle slowdown effect
       this.vx *= 0.98;
       this.vy *= 0.98;
-      this.life -= 1 / this.maxLife * 0.008; // ~60fps fade (2x slower)
+
+      this.life -= 1 / this.maxLife * 0.008; // ~60fps fade (2x slower = ~5.2 seconds)
     }
   }
 
