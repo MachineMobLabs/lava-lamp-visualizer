@@ -41,6 +41,13 @@ export class LavaLamp {
   }
 
   draw(intensity: number): void {
+    // Sync tempCanvas dimensions with actual p5 canvas (handles window resize)
+    const canvas = (this.p as any).canvas as HTMLCanvasElement;
+    if (canvas && (this.tempCanvas.width !== canvas.width || this.tempCanvas.height !== canvas.height)) {
+      this.tempCanvas.width = canvas.width;
+      this.tempCanvas.height = canvas.height;
+    }
+
     // Clear temp canvas
     this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
 
