@@ -128,20 +128,28 @@ class InkParticle {
   }
 
   display(_ctx: CanvasRenderingContext2D, p: p5, _avgFreq: number, bass: number, treble: number): void {
-    // Draw light grey ink drops that fade with life (#c4c4c4)
+    // Draw splatter-like ink drops that fade with life (#a4a4a4)
     const opacity = Math.floor(this.life * 0.85 * 255);
 
     // Audio-responsive size: increase with bass and treble
     const audioBoost = 1 + (bass * 0.3 + treble * 0.2);
     const displaySize = this.size * audioBoost;
 
-    p.fill(196, 196, 196, opacity);
+    p.fill(164, 164, 164, opacity);
     p.noStroke();
 
-    // Make drops oblong - wider than they are tall (like lava)
-    const width = displaySize * 1.4;
-    const height = displaySize * 0.9;
-    p.ellipse(this.x, this.y, width, height);
+    // Create splatter effect - wide main shape with smaller satellite drops
+    const mainWidth = displaySize * 2.5;
+    const mainHeight = displaySize * 0.8;
+
+    // Main center splatter
+    p.ellipse(this.x, this.y, mainWidth, mainHeight);
+
+    // Add smaller satellite splatters for organic splatter effect
+    const splatSize = displaySize * 0.4;
+    p.ellipse(this.x - mainWidth * 0.3, this.y - mainHeight * 0.3, splatSize, splatSize * 0.7);
+    p.ellipse(this.x + mainWidth * 0.35, this.y + mainHeight * 0.25, splatSize * 0.6, splatSize * 0.5);
+    p.ellipse(this.x, this.y - mainHeight * 0.5, splatSize * 0.5, splatSize * 0.4);
   }
 
   isDead(): boolean {
