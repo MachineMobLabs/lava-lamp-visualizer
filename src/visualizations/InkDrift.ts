@@ -104,7 +104,7 @@ class InkParticle {
   display(p: p5): void {
     if (this.life <= 0) return; // Only draw active particles
 
-    const spacing = 10;
+    const spacing = 20; // 2x spacing from original 10px
 
     p.fill(164, 164, 164, 255); // Fully opaque, no transparency
     p.noStroke();
