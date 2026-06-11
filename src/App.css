@@ -20,15 +20,17 @@
 
 .toggle-controls {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  width: 44px;
-  height: 44px;
+  bottom: auto;
+  top: calc(100vh - 140px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff8c00, #ff6b35);
   border: none;
   color: white;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   cursor: pointer;
   z-index: 11;

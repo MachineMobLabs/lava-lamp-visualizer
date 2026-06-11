@@ -7,7 +7,7 @@ export class Bubbles {
 
   constructor(p: p5) {
     this.p = p;
-    this.createBubbles(100);
+    this.createBubbles(60);
   }
 
   setSpeed(_speed: number): void {
@@ -118,12 +118,9 @@ class Bubble {
     const gradient = this.createGradient(ctx);
 
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = this.baseColor;
-    ctx.lineWidth = this.lineWidth;
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-    ctx.stroke();
     ctx.fill();
     ctx.closePath();
 

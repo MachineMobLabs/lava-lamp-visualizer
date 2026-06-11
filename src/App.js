@@ -13,6 +13,7 @@ export default function App() {
     const [mode, setMode] = useState('lava');
     const [isInitialized, setIsInitialized] = useState(false);
     const [error, setError] = useState(null);
+    const [showControls, setShowControls] = useState(true);
     const visualizationRef = useRef(null);
     const p5InstanceRef = useRef(null);
     const toggleAudio = async () => {
@@ -35,6 +36,16 @@ export default function App() {
             }
         }
     };
+    // Handle Escape key to toggle controls
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setShowControls(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
     useEffect(() => {
         if (!p5ContainerRef.current)
             return;
@@ -51,9 +62,7 @@ export default function App() {
                 p.smooth();
             };
             p.draw = function () {
-                p.background(10, 10, 10, 20); // Slight trail effect
-                p.fill(10, 10, 10, 20);
-                p.rect(0, 0, p.width, p.height);
+                p.background(10, 10, 10); // Clean black background, no trails
                 if (visualizationRef.current) {
                     visualizationRef.current.draw(INTENSITY);
                 }
@@ -93,5 +102,5 @@ export default function App() {
         }
         visualizationRef.current = newViz;
     }, [mode]);
-    return (_jsxs("div", { className: "app", children: [_jsx("div", { className: "canvas-container", ref: p5ContainerRef }), _jsxs("div", { className: "controls", children: [_jsxs("div", { className: "header", children: [_jsxs("div", { className: "header-top", children: [_jsx("h1", { children: "Visualizer:" }), _jsx("button", { className: "mic-button", onClick: toggleAudio, children: !isInitialized ? 'Enable Microphone' : 'Disable Microphone' })] }), _jsx("hr", { className: "header-divider" }), _jsxs("p", { children: ["Works solo or with your mic. Click ", _jsx("i", { children: "Enable Microphone" }), " to watch your audio come to life."] })] }), error && _jsx("div", { className: "error", children: error }), _jsxs("div", { className: "mode-selector", children: [_jsx("label", { children: "Mode" }), _jsxs("div", { className: "mode-buttons", children: [_jsx("button", { className: `mode-btn ${mode === 'lava' ? 'active' : ''}`, onClick: () => setMode('lava'), children: "\uD83C\uDF0B Lava" }), _jsx("button", { className: `mode-btn ${mode === 'bubbles' ? 'active' : ''}`, onClick: () => setMode('bubbles'), children: "\u2728 Bubbles" }), _jsx("button", { className: `mode-btn ${mode === 'ink' ? 'active' : ''}`, onClick: () => setMode('ink'), children: "\uD83D\uDCA7 Ink" }), _jsx("button", { className: `mode-btn ${mode === 'particles' ? 'active' : ''}`, onClick: () => setMode('particles'), children: "\u2726 Particles" })] })] })] })] }));
+    return (_jsxs("div", { className: "app", children: [_jsx("div", { className: "canvas-container", ref: p5ContainerRef }), _jsx("button", { className: "toggle-controls", onClick: () => setShowControls(!showControls), title: showControls ? 'Hide controls (press Esc)' : 'Show controls (press Esc)', children: showControls ? '▼' : '▲' }), _jsxs("div", { className: `controls ${!showControls ? 'hidden' : ''}`, children: [_jsxs("div", { className: "header", children: [_jsxs("div", { className: "header-top", children: [_jsx("h1", { children: "Visualizer:" }), _jsx("button", { className: "mic-button", onClick: toggleAudio, children: !isInitialized ? 'Enable Microphone' : 'Disable Microphone' })] }), _jsx("hr", { className: "header-divider" }), _jsxs("p", { children: ["Works solo or with your mic. Click ", _jsx("i", { children: "Enable Microphone" }), " to watch your audio come to life."] })] }), error && _jsx("div", { className: "error", children: error }), _jsxs("div", { className: "mode-selector", children: [_jsx("label", { children: "Mode" }), _jsxs("div", { className: "mode-buttons", children: [_jsx("button", { className: `mode-btn ${mode === 'lava' ? 'active' : ''}`, onClick: () => setMode('lava'), children: "\uD83C\uDF0B Lava" }), _jsx("button", { className: `mode-btn ${mode === 'bubbles' ? 'active' : ''}`, onClick: () => setMode('bubbles'), children: "\u2728 Bubbles" }), _jsx("button", { className: `mode-btn ${mode === 'ink' ? 'active' : ''}`, onClick: () => setMode('ink'), children: "\uD83D\uDCA7 Ink" }), _jsx("button", { className: `mode-btn ${mode === 'particles' ? 'active' : ''}`, onClick: () => setMode('particles'), children: "\u2726 Particles" })] })] })] })] }));
 }
