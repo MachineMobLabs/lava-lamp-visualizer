@@ -63,6 +63,7 @@ class InkParticle {
   baseSize: number = 0;
   timeSinceSpawn: number = 0;
   delayBeforeActivation: number;
+  colorCycle: number = 0; // Color based on spawn time
   // Pre-generate random positions and sizes for the 9 surrounding ellipses
   randomEllipses: Array<{ angle: number; distance: number; sizeMultiplier: number }>;
 
@@ -93,6 +94,9 @@ class InkParticle {
       // Spawn at random location on screen
       this.x = Math.random() * 1920; // Approximate max width
       this.y = Math.random() * 1080; // Approximate max height
+
+      // Set unique color based on spawn time (cycles through color spectrum)
+      this.colorCycle = (this.timeSinceSpawn * 0.5) % 100;
     }
 
     // Update active particles
@@ -105,7 +109,12 @@ class InkParticle {
   display(p: p5): void {
     if (this.life <= 0) return; // Only draw active particles
 
-    p.fill(164, 164, 164, 255); // Fully opaque, no transparency
+    // Calculate color based on spawn time (Lava-style color cycling)
+    const r = Math.floor(Math.sin(0.3 * this.colorCycle + 0) * 127 + 128);
+    const g = Math.floor(Math.sin(0.3 * this.colorCycle + 2) * 127 + 128);
+    const b = Math.floor(Math.sin(0.3 * this.colorCycle + 4) * 127 + 128);
+
+    p.fill(r, g, b, 255); // Fully opaque, dynamic color
     p.noStroke();
 
     // Center ellipse at 2x size (fixed)
