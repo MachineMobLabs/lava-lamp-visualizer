@@ -14,37 +14,31 @@ export class Particles {
   }
 
   draw(intensity: number): void {
-    const freqData = audioInput.getFrequencyData();
-    let avgFreq = 0;
-    let treble = 0;
+    // Get audio data - same method as Lava/Bubbles/Ink
+    const avgFreq = audioInput.getAverageFrequency() / 255;
+    const audioSensitivity = Math.pow(avgFreq, 0.5); // Boost quiet sounds (square root)
 
-    if (freqData) {
-      avgFreq = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
-      treble = audioInput.getFrequencyBand(100, 256) / 255;
-    }
-
-    // Light trail effect
+    // Light trail effect - subtle fade
     this.p.fill(10, 10, 10, 5);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    // Spawn particles with audio or continuously at base intensity
-    const baseSpawn = intensity * 20;
-    const spawnRate = Math.max(baseSpawn, (Math.max(avgFreq * 30, treble * 50) + 1) * intensity * 2);
+    // Audio-driven spawn rate - more particles with louder audio
+    const baseSpawnRate = intensity * 15;
+    const audioBoost = audioSensitivity * 4;
+    const spawnRate = baseSpawnRate + audioBoost;
 
-    const centerX = this.p.width / 2;
-    const centerY = this.p.height / 2;
-
-    if (spawnRate > 0 || this.particles.length < 100) {
-      for (let i = 0; i < spawnRate; i++) {
-        if (this.particles.length < 600) {
-          this.particles.push(new Particle(this.p, centerX, centerY));
-        }
+    // Spawn particles randomly across entire screen (not from center)
+    for (let i = 0; i < spawnRate; i++) {
+      if (this.particles.length < 500) {
+        const x = Math.random() * this.p.width;
+        const y = Math.random() * this.p.height;
+        this.particles.push(new Particle(this.p, x, y, audioSensitivity));
       }
     }
 
     // Update and display
     for (let i = this.particles.length - 1; i >= 0; i--) {
-      this.particles[i].update(intensity);
+      this.particles[i].update(intensity, audioSensitivity);
       this.particles[i].display();
 
       if (this.particles[i].isDead()) {
@@ -61,24 +55,31 @@ class Particle {
   vx: number;
   vy: number;
   life: number;
+  maxLife: number;
   hue: number;
+  baseSize: number;
 
-  constructor(p: p5, x: number, y: number) {
+  constructor(p: p5, x: number, y: number, audioSensitivity: number) {
     this.p = p;
     this.x = x;
     this.y = y;
-    this.vx = (Math.random() - 0.5) * 4;
-    this.vy = (Math.random() - 0.5) * 4;
+    // Audio-responsive movement
+    const baseSpeed = 1 + audioSensitivity * 2;
+    this.vx = (Math.random() - 0.5) * 4 * baseSpeed;
+    this.vy = (Math.random() - 0.5) * 4 * baseSpeed;
+    this.maxLife = 1;
     this.life = 1;
     this.hue = Math.random() * 360;
+    // Audio-responsive size
+    this.baseSize = 2 + audioSensitivity * 3; // 2-5px based on audio
   }
 
-  update(intensity: number): void {
+  update(intensity: number, audioSensitivity: number): void {
     this.x += this.vx * intensity;
     this.y += this.vy * intensity;
     this.vx *= 0.98;
     this.vy *= 0.98;
-    this.life -= 0.005;
+    this.life -= 1 / this.maxLife * 0.016; // ~60fps fade
   }
 
   display(): void {
@@ -103,9 +104,11 @@ class Particle {
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
 
+    // Size and opacity scale with life
+    const displaySize = this.baseSize * this.life;
     this.p.fill(r, g, b, this.life * 0.8 * 255);
     this.p.noStroke();
-    this.p.rect(this.x, this.y, 3, 3);
+    this.p.rect(this.x, this.y, displaySize, displaySize);
   }
 
   isDead(): boolean {
