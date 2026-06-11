@@ -33,8 +33,8 @@ export class InkDrift {
       treble = audioInput.getFrequencyBand(100, 256) / 255;
     }
 
-    // Increment noise offset for flowing effect (slowed down 4x)
-    this.noiseOffset += 0.002;
+    // Increment noise offset for flowing effect (slowed down 16x total)
+    this.noiseOffset += 0.0005;
 
     // Spawn particles with audio or continuously at base intensity
     const baseSpawnRate = intensity * 1.5;
@@ -45,9 +45,9 @@ export class InkDrift {
 
     for (let i = 0; i < spawnRate; i++) {
       if (this.particles.length < 120) {
-        // Spawn particles in a wide circle around center for spacing
+        // Spawn particles spread across the full page
         const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 120 + 30;
+        const distance = Math.random() * 400 + 50;
         this.particles.push(new InkParticle(
           centerX + Math.cos(angle) * distance,
           centerY + Math.sin(angle) * distance
@@ -89,7 +89,7 @@ class InkParticle {
   update(p: p5, noiseOffset: number, intensity: number, bass: number, treble: number): void {
     // Use Perlin noise to create flowing velocity field
     const noiseScale = 0.004;
-    const velocityScale = (0.8 + intensity * 0.3) * 0.25; // Slowed 4x
+    const velocityScale = (0.8 + intensity * 0.3) * 0.0625; // Slowed 16x total
 
     // Sample noise at slightly offset locations to create flow field
     const noiseX = this.x * noiseScale + noiseOffset;
@@ -98,7 +98,7 @@ class InkParticle {
 
     // Create velocity vectors from noise using p5's noise function
     const angle = (p.noise(noiseX, noiseY, noiseZ) * Math.PI * 2) - Math.PI;
-    const speed = (0.5 + (bass + treble) * 0.3) * 0.25; // Slowed 4x
+    const speed = (0.5 + (bass + treble) * 0.3) * 0.0625; // Slowed 16x total
 
     this.vx = Math.cos(angle) * speed * velocityScale;
     this.vy = Math.sin(angle) * speed * velocityScale;
@@ -110,19 +110,19 @@ class InkParticle {
     const dy = this.y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 0) {
-      this.vx += (dx / dist) * 0.075; // Also slowed 4x
-      this.vy += (dy / dist) * 0.075;
+      this.vx += (dx / dist) * 0.01875; // Slowed 16x total
+      this.vy += (dy / dist) * 0.01875;
     }
 
     // Update position
     this.x += this.vx;
     this.y += this.vy;
 
-    // Fade life (slowed 4x)
-    this.life -= 1 / this.maxLife * 0.004;
+    // Fade life (slowed 16x total)
+    this.life -= 1 / this.maxLife * 0.001;
 
     // Size decreases as particle ages
-    this.size *= 0.99; // Slower decay
+    this.size *= 0.997; // Even slower decay
   }
 
   display(_ctx: CanvasRenderingContext2D, p: p5): void {
