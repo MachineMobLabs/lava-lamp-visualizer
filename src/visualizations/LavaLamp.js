@@ -59,7 +59,7 @@ export class LavaLamp {
             const y = Math.random() * p.height;
             const vx = (Math.random() * 2) - 1; // Reduced from 8 to 2 for slower motion
             const vy = (Math.random() * 2) - 1; // Reduced from 8 to 2
-            const baseSize = Math.floor((Math.random() * 64 + 64) * 1.4); // 40% bigger: 89-178px
+            const baseSize = Math.floor((Math.random() * 64 + 64) * 1.96); // 80% bigger (40% twice): 125-251px
             this.particles.push({ x, y, vx, vy, size: baseSize, baseSize });
         }
     }

@@ -3,7 +3,8 @@ import { audioInput } from '../AudioInput';
 
 export class InkDrift {
   private p: p5;
-  private trails: Trail[] = [];
+  private particles: InkParticle[] = [];
+  private noiseOffset: number = 0;
 
   constructor(p: p5) {
     this.p = p;
@@ -25,77 +26,115 @@ export class InkDrift {
       treble = audioInput.getFrequencyBand(100, 256) / 255;
     }
 
-    // Light trail effect
-    this.p.fill(10, 10, 10, 15);
-    this.p.rect(0, 0, this.p.width, this.p.height);
+    // Increment noise offset for flowing effect
+    this.noiseOffset += 0.01;
 
-    // Spawn trails with audio or continuously at base intensity
-    const baseSpawnChance = intensity * 0.6;
-    const spawnChance = Math.max(baseSpawnChance, 0.3 + treble * 0.5);
+    // Spawn particles with audio or continuously at base intensity
+    const baseSpawnRate = intensity * 8;
+    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 20 + treble * 30) * intensity);
 
-    if (Math.random() < spawnChance) {
-      const centerX = this.p.width / 2;
-      const centerY = this.p.height / 2;
-      this.trails.push(new Trail(
-        this.p,
-        centerX + (Math.random() - 0.5) * 200,
-        centerY + (Math.random() - 0.5) * 200,
-        Math.random() * 360
-      ));
-    }
+    const centerX = this.p.width / 2;
+    const centerY = this.p.height / 2;
 
-    // Update and display
-    for (let i = this.trails.length - 1; i >= 0; i--) {
-      this.trails[i].update(avgFreq, bass, treble, intensity);
-      this.trails[i].display();
-
-      if (this.trails[i].isDead()) {
-        this.trails.splice(i, 1);
+    for (let i = 0; i < spawnRate; i++) {
+      if (this.particles.length < 800) {
+        // Spawn particles in a circle around center
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 40 + 20;
+        this.particles.push(new InkParticle(
+          centerX + Math.cos(angle) * distance,
+          centerY + Math.sin(angle) * distance,
+          this.noiseOffset
+        ));
       }
     }
+
+    // Set blend mode for organic diffusion effect
+    const canvas = (this.p as any).canvas as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d')!;
+    ctx.globalCompositeOperation = 'lighter';
+
+    // Update and display particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      this.particles[i].update(this.p, this.noiseOffset, intensity, bass, treble);
+      this.particles[i].display(this.p, ctx);
+
+      if (this.particles[i].isDead()) {
+        this.particles.splice(i, 1);
+      }
+    }
+
+    // Reset blend mode
+    ctx.globalCompositeOperation = 'source-over';
   }
 }
 
-class Trail {
-  private p: p5;
+class InkParticle {
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  hue: number;
+  vx: number = 0;
+  vy: number = 0;
+  life: number = 1;
+  maxLife: number = 1;
   size: number;
+  hue: number;
+  noisePhase: number;
 
-  constructor(p: p5, x: number, y: number, hue: number) {
-    this.p = p;
+  constructor(x: number, y: number, noiseOffset: number) {
     this.x = x;
     this.y = y;
-    this.vx = (Math.random() - 0.5) * 2;
-    this.vy = (Math.random() - 0.5) * 2;
-    this.life = 1;
-    this.hue = hue;
-    this.size = 5;
+    this.maxLife = 0.8 + Math.random() * 0.4;
+    this.life = this.maxLife;
+    this.size = 2 + Math.random() * 3;
+    this.hue = Math.random() * 60 + 180; // Cyan to blue hues
+    this.noisePhase = Math.random() * 1000;
   }
 
-  update(avgFreq: number, bass: number, treble: number, intensity: number): void {
-    // Smooth velocity based on pitch (treble = faster, bass = slower/larger)
-    this.vx = this.vx * 0.9 + (treble - 0.5) * 3 * intensity * 0.1;
-    this.vy = this.vy * 0.9 + (bass - 0.5) * 2 * intensity * 0.1;
+  update(p: p5, noiseOffset: number, intensity: number, bass: number, treble: number): void {
+    // Use Perlin noise to create flowing velocity field
+    const noiseScale = 0.005;
+    const velocityScale = 1.5 + intensity * 0.5;
 
-    this.x += this.vx * intensity;
-    this.y += this.vy * intensity;
-    this.life -= 0.008;
+    // Sample noise at slightly offset locations to create flow field
+    const noiseX = this.x * noiseScale + noiseOffset;
+    const noiseY = this.y * noiseScale + noiseOffset;
+    const noiseZ = this.noisePhase + noiseOffset;
 
-    // Size responsive to all frequencies
-    this.size = this.size * 0.95 + (5 + avgFreq * 30 + bass * 20) * 0.05;
+    // Create velocity vectors from noise using p5's noise function
+    const angle = (p.noise(noiseX, noiseY, noiseZ) * Math.PI * 2) - Math.PI;
+    const speed = 0.8 + (bass + treble) * 0.5;
+
+    this.vx = Math.cos(angle) * speed * velocityScale;
+    this.vy = Math.sin(angle) * speed * velocityScale;
+
+    // Add slight outward radial component
+    const centerX = p.width / 2;
+    const centerY = p.height / 2;
+    const dx = this.x - centerX;
+    const dy = this.y - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 0) {
+      this.vx += (dx / dist) * 0.2;
+      this.vy += (dy / dist) * 0.2;
+    }
+
+    // Update position
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Fade life
+    this.life -= 1 / this.maxLife * 0.016; // Normalized fade
+
+    // Size decreases as particle ages
+    this.size *= 0.98;
   }
 
-  display(): void {
+  display(p: p5, ctx: CanvasRenderingContext2D): void {
+    // HSL to RGB conversion for vibrant colors
     const h = this.hue;
-    const s = 100;
+    const s = 80 + this.life * 20; // More saturated when young
     const l = 50;
 
-    // Convert HSL to RGB
     const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
     const m = (l / 100) - c / 2;
@@ -112,9 +151,12 @@ class Trail {
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
 
-    this.p.fill(r, g, b, this.life * 0.5 * 255);
-    this.p.noStroke();
-    this.p.ellipse(this.x, this.y, this.size, this.size);
+    // Opacity fades as particle travels
+    const opacity = this.life * 0.6 * 255;
+
+    p.fill(r, g, b, opacity);
+    p.noStroke();
+    p.ellipse(this.x, this.y, this.size, this.size);
   }
 
   isDead(): boolean {

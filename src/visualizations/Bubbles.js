@@ -14,7 +14,7 @@ export class Bubbles {
             value: []
         });
         this.p = p;
-        this.createBubbles(100);
+        this.createBubbles(60);
     }
     setSpeed(_speed) {
         // Controlled by intensity
@@ -148,11 +148,8 @@ class Bubble {
         // Create radial gradient
         const gradient = this.createGradient(ctx);
         ctx.fillStyle = gradient;
-        ctx.strokeStyle = this.baseColor;
-        ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-        ctx.stroke();
         ctx.fill();
         ctx.closePath();
         ctx.restore();
