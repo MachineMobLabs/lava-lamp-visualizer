@@ -10,10 +10,13 @@ export class InkDrift {
     this.particles = [];
 
     // Pre-create fixed particle pool like Lava/Bubbles (no dynamic spawning)
+    // Stagger the timing so particles don't all spawn at once
     for (let i = 0; i < 80; i++) {
       const x = Math.random() * p.width;
       const y = Math.random() * p.height;
-      this.particles.push(new InkParticle(x, y));
+      // Stagger activation delay - spread particles over time
+      const delayBeforeActivation = Math.random() * 8; // 0-8 second stagger
+      this.particles.push(new InkParticle(x, y, delayBeforeActivation));
     }
   }
 
@@ -54,24 +57,25 @@ export class InkDrift {
 class InkParticle {
   x: number;
   y: number;
-  baseX: number;
-  baseY: number;
   life: number = 0;
   maxLife: number = 2.5;
   size: number = 0;
   baseSize: number = 0;
-  isActive: boolean = false;
+  timeSinceSpawn: number = 0;
+  delayBeforeActivation: number;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, delayBeforeActivation: number) {
     this.x = x;
     this.y = y;
-    this.baseX = x;
-    this.baseY = y;
+    this.delayBeforeActivation = delayBeforeActivation;
   }
 
   update(isActive: boolean, audioSize: number, _intensity: number, _avgFreq: number, _bass: number, _treble: number): void {
-    // Activate particle if triggered by audio
-    if (isActive && this.life <= 0) {
+    // Increment time counter for staggering
+    this.timeSinceSpawn += 0.016; // ~60fps
+
+    // Only activate after delay has passed
+    if (isActive && this.life <= 0 && this.timeSinceSpawn > this.delayBeforeActivation) {
       this.life = this.maxLife;
       this.baseSize = audioSize;
       this.size = audioSize;
@@ -84,33 +88,33 @@ class InkParticle {
     // Update active particles
     if (this.life > 0) {
       this.life -= 1 / this.maxLife * 0.016; // ~60fps fade
-
-      // Size decreases as it fades
-      const lifePercent = Math.max(0, this.life / this.maxLife);
-      this.size = this.baseSize * lifePercent;
+      this.size = this.baseSize * Math.max(0, this.life / this.maxLife);
     }
   }
 
   display(p: p5): void {
     if (this.life <= 0) return; // Only draw active particles
 
-    // Calculate opacity based on life
-    const opacity = Math.floor((this.life / this.maxLife) * 200);
-    const spacing = 5;
+    const spacing = 10;
+    const opacity = 200; // Solid opacity, no transparency
 
     p.fill(164, 164, 164, opacity);
     p.noStroke();
 
-    // Center ellipse at 2x size
+    // Center ellipse at 2x size (biggest)
     p.ellipse(this.x, this.y, this.size * 2);
 
-    // One ellipse at 1x size, offset down with spacing
-    p.ellipse(this.x, this.y + this.size + spacing, this.size);
+    // Four surrounding ellipses at different sizes with 10px spacing
+    // Top ellipse - 1x size
+    p.ellipse(this.x, this.y - this.size - spacing, this.size);
 
-    // Three ellipses at 0.5x size positioned around the center with spacing
-    const offset = this.size * 0.6 + spacing;
-    p.ellipse(this.x - offset, this.y, this.size * 0.5);
-    p.ellipse(this.x + offset, this.y, this.size * 0.5);
-    p.ellipse(this.x, this.y + offset, this.size * 0.5);
+    // Right ellipse - 0.75x size
+    p.ellipse(this.x + this.size * 0.75 + spacing, this.y, this.size * 0.75);
+
+    // Bottom ellipse - 0.5x size
+    p.ellipse(this.x, this.y + this.size * 0.5 + spacing, this.size * 0.5);
+
+    // Left ellipse - 0.25x size
+    p.ellipse(this.x - this.size * 0.25 - spacing, this.y, this.size * 0.25);
   }
 }
