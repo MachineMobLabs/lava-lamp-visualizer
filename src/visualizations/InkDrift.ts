@@ -37,14 +37,14 @@ export class InkDrift {
     this.noiseOffset += 0.0005;
 
     // Spawn particles with audio or continuously at base intensity
-    const baseSpawnRate = intensity * 1.5;
-    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 4 + treble * 6) * intensity);
+    const baseSpawnRate = intensity * 3;
+    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 6 + treble * 8) * intensity);
 
     const centerX = this.p.width / 2;
     const centerY = this.p.height / 2;
 
     for (let i = 0; i < spawnRate; i++) {
-      if (this.particles.length < 120) {
+      if (this.particles.length < 200) {
         // Spawn particles spread across the full page
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * 400 + 50;
@@ -58,7 +58,7 @@ export class InkDrift {
     // Update and display particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       this.particles[i].update(this.p, this.noiseOffset, intensity, bass, treble);
-      this.particles[i].display(ctx, this.p);
+      this.particles[i].display(ctx, this.p, avgFreq, bass, treble);
 
       if (this.particles[i].isDead()) {
         this.particles.splice(i, 1);
@@ -89,7 +89,9 @@ class InkParticle {
   update(p: p5, noiseOffset: number, intensity: number, bass: number, treble: number): void {
     // Use Perlin noise to create flowing velocity field
     const noiseScale = 0.004;
-    const velocityScale = (0.8 + intensity * 0.3) * 0.0625; // Slowed 16x total
+    // Audio boosts velocity - stronger response to bass and treble
+    const audioMultiplier = 1 + (bass * 0.5 + treble * 0.4);
+    const velocityScale = (0.8 + intensity * 0.3) * 0.0625 * audioMultiplier; // Slowed 16x total, but audio-responsive
 
     // Sample noise at slightly offset locations to create flow field
     const noiseX = this.x * noiseScale + noiseOffset;
@@ -98,7 +100,7 @@ class InkParticle {
 
     // Create velocity vectors from noise using p5's noise function
     const angle = (p.noise(noiseX, noiseY, noiseZ) * Math.PI * 2) - Math.PI;
-    const speed = (0.5 + (bass + treble) * 0.3) * 0.0625; // Slowed 16x total
+    const speed = (0.5 + (bass + treble) * 0.3) * 0.0625 * audioMultiplier; // Slowed 16x total, but audio-responsive
 
     this.vx = Math.cos(angle) * speed * velocityScale;
     this.vy = Math.sin(angle) * speed * velocityScale;
@@ -110,8 +112,8 @@ class InkParticle {
     const dy = this.y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 0) {
-      this.vx += (dx / dist) * 0.01875; // Slowed 16x total
-      this.vy += (dy / dist) * 0.01875;
+      this.vx += (dx / dist) * 0.01875 * audioMultiplier; // Slowed 16x total, audio-responsive
+      this.vy += (dy / dist) * 0.01875 * audioMultiplier;
     }
 
     // Update position
@@ -125,12 +127,21 @@ class InkParticle {
     this.size *= 0.997; // Even slower decay
   }
 
-  display(_ctx: CanvasRenderingContext2D, p: p5): void {
+  display(_ctx: CanvasRenderingContext2D, p: p5, avgFreq: number, bass: number, treble: number): void {
     // Draw light grey ink drops that fade with life (#c4c4c4)
     const opacity = Math.floor(this.life * 0.85 * 255);
+
+    // Audio-responsive size: increase with bass and treble
+    const audioBoost = 1 + (bass * 0.3 + treble * 0.2);
+    const displaySize = this.size * audioBoost;
+
     p.fill(196, 196, 196, opacity);
     p.noStroke();
-    p.ellipse(this.x, this.y, this.size * 1.2);
+
+    // Make drops oblong - wider than they are tall (like lava)
+    const width = displaySize * 1.4;
+    const height = displaySize * 0.9;
+    p.ellipse(this.x, this.y, width, height);
   }
 
   isDead(): boolean {

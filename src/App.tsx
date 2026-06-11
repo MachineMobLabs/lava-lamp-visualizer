@@ -122,7 +122,7 @@ export default function App() {
       <div className="canvas-container" ref={p5ContainerRef} />
 
       <button
-        className="toggle-controls"
+        className={`toggle-controls ${!showControls ? 'hidden-controls' : ''}`}
         onClick={() => setShowControls(!showControls)}
         title={showControls ? 'Hide controls (press Esc)' : 'Show controls (press Esc)'}
       >
