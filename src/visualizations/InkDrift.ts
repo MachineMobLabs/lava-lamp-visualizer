@@ -33,21 +33,21 @@ export class InkDrift {
       treble = audioInput.getFrequencyBand(100, 256) / 255;
     }
 
-    // Increment noise offset for flowing effect
-    this.noiseOffset += 0.008;
+    // Increment noise offset for flowing effect (slowed down 4x)
+    this.noiseOffset += 0.002;
 
     // Spawn particles with audio or continuously at base intensity
-    const baseSpawnRate = intensity * 2;
-    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 6 + treble * 10) * intensity);
+    const baseSpawnRate = intensity * 1.5;
+    const spawnRate = Math.max(baseSpawnRate, (avgFreq * 4 + treble * 6) * intensity);
 
     const centerX = this.p.width / 2;
     const centerY = this.p.height / 2;
 
     for (let i = 0; i < spawnRate; i++) {
-      if (this.particles.length < 150) {
-        // Spawn particles in a circle around center with more concentrated spread
+      if (this.particles.length < 120) {
+        // Spawn particles in a wide circle around center for spacing
         const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 60 + 10;
+        const distance = Math.random() * 120 + 30;
         this.particles.push(new InkParticle(
           centerX + Math.cos(angle) * distance,
           centerY + Math.sin(angle) * distance
@@ -89,7 +89,7 @@ class InkParticle {
   update(p: p5, noiseOffset: number, intensity: number, bass: number, treble: number): void {
     // Use Perlin noise to create flowing velocity field
     const noiseScale = 0.004;
-    const velocityScale = 0.8 + intensity * 0.3;
+    const velocityScale = (0.8 + intensity * 0.3) * 0.25; // Slowed 4x
 
     // Sample noise at slightly offset locations to create flow field
     const noiseX = this.x * noiseScale + noiseOffset;
@@ -98,7 +98,7 @@ class InkParticle {
 
     // Create velocity vectors from noise using p5's noise function
     const angle = (p.noise(noiseX, noiseY, noiseZ) * Math.PI * 2) - Math.PI;
-    const speed = 0.5 + (bass + treble) * 0.3;
+    const speed = (0.5 + (bass + treble) * 0.3) * 0.25; // Slowed 4x
 
     this.vx = Math.cos(angle) * speed * velocityScale;
     this.vy = Math.sin(angle) * speed * velocityScale;
@@ -110,25 +110,25 @@ class InkParticle {
     const dy = this.y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 0) {
-      this.vx += (dx / dist) * 0.3;
-      this.vy += (dy / dist) * 0.3;
+      this.vx += (dx / dist) * 0.075; // Also slowed 4x
+      this.vy += (dy / dist) * 0.075;
     }
 
     // Update position
     this.x += this.vx;
     this.y += this.vy;
 
-    // Fade life
-    this.life -= 1 / this.maxLife * 0.016;
+    // Fade life (slowed 4x)
+    this.life -= 1 / this.maxLife * 0.004;
 
     // Size decreases as particle ages
-    this.size *= 0.96;
+    this.size *= 0.99; // Slower decay
   }
 
   display(_ctx: CanvasRenderingContext2D, p: p5): void {
-    // Draw dark ink drops that fade with life
+    // Draw light grey ink drops that fade with life (#c4c4c4)
     const opacity = Math.floor(this.life * 0.85 * 255);
-    p.fill(15, 15, 20, opacity);
+    p.fill(196, 196, 196, opacity);
     p.noStroke();
     p.ellipse(this.x, this.y, this.size * 1.2);
   }
