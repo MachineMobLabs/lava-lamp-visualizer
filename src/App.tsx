@@ -17,7 +17,6 @@ export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const visualizationRef = useRef<LavaLamp | Bubbles | InkDrift | Particles | null>(null);
   const p5InstanceRef = useRef<p5 | null>(null);
@@ -41,24 +40,14 @@ export default function App() {
     }
   };
 
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      // Enter fullscreen
-      const element = p5ContainerRef.current;
-      if (element) {
-        element.requestFullscreen().catch(() => {
-          // Fallback: try webkit/moz versions
-          (element as any).webkitRequestFullscreen?.();
-          (element as any).mozRequestFullScreen?.();
-        });
-        setIsFullscreen(true);
-      }
-    } else {
-      // Exit fullscreen
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
+  const enterFullscreen = () => {
+    const element = p5ContainerRef.current;
+    if (element) {
+      element.requestFullscreen().catch(() => {
+        // Fallback: try webkit/moz versions
+        (element as any).webkitRequestFullscreen?.();
+        (element as any).mozRequestFullScreen?.();
+      });
     }
   };
 
@@ -159,8 +148,8 @@ export default function App() {
               <button className="mic-button" onClick={toggleAudio}>
                 {!isInitialized ? 'Enable Microphone' : 'Disable Microphone'}
               </button>
-              <button className="mic-button" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
-                {isFullscreen ? '⛶ Exit Fullscreen' : '⛶ Fullscreen'}
+              <button className="mic-button" onClick={enterFullscreen} title="Enter fullscreen (press Esc to exit)">
+                ⛶ Fullscreen
               </button>
             </div>
           </div>
