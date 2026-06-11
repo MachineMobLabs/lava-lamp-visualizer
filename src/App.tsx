@@ -16,6 +16,7 @@ export default function App() {
   const [mode, setMode] = useState<VisualizationMode>('lava');
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showControls, setShowControls] = useState(true);
 
   const visualizationRef = useRef<LavaLamp | Bubbles | InkDrift | Particles | null>(null);
   const p5InstanceRef = useRef<p5 | null>(null);
@@ -38,6 +39,18 @@ export default function App() {
       }
     }
   };
+
+  // Handle Escape key to toggle controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowControls(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!p5ContainerRef.current) return;
@@ -108,7 +121,15 @@ export default function App() {
     <div className="app">
       <div className="canvas-container" ref={p5ContainerRef} />
 
-      <div className="controls">
+      <button
+        className="toggle-controls"
+        onClick={() => setShowControls(!showControls)}
+        title={showControls ? 'Hide controls (press Esc)' : 'Show controls (press Esc)'}
+      >
+        {showControls ? '▼' : '▲'}
+      </button>
+
+      <div className={`controls ${!showControls ? 'hidden' : ''}`}>
         <div className="header">
           <div className="header-top">
             <h1>Visualizer:</h1>
