@@ -79,8 +79,9 @@ class InkParticle {
   }
 
   display(p: p5): void {
-    // Composite splatter effect with 5 ellipses
+    // Composite splatter effect with 5 ellipses spaced apart
     const opacity = Math.floor((this.life / this.maxLife) * this.opacity);
+    const spacing = 5; // 5px spacing between ellipses
 
     p.fill(164, 164, 164, opacity);
     p.noStroke();
@@ -89,11 +90,11 @@ class InkParticle {
     // Center ellipse at 2x size
     p.ellipse(this.x, this.y, this.size * 2);
 
-    // One ellipse at 1x size
-    p.ellipse(this.x, this.y, this.size);
+    // One ellipse at 1x size, offset down with spacing
+    p.ellipse(this.x, this.y + this.size + spacing, this.size);
 
-    // Three ellipses at 0.5x size positioned around the center
-    const offset = this.size * 0.4;
+    // Three ellipses at 0.5x size positioned around the center with spacing
+    const offset = this.size * 0.6 + spacing;
     p.ellipse(this.x - offset, this.y, this.size * 0.5);
     p.ellipse(this.x + offset, this.y, this.size * 0.5);
     p.ellipse(this.x, this.y + offset, this.size * 0.5);
