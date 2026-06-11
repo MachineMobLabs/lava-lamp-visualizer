@@ -77,7 +77,7 @@ export class LavaLamp {
         }
         // Update particle positions with intensity and audio affecting speed
         // Audio dramatically boosts speed - responds to whispers and loud music
-        const speedMult = (intensity * 0.5 + 0.5) * (1 + avgFreq * 2.5); // Much higher audio multiplier
+        const speedMult = (intensity * 1.2 + 0.8) * (1 + avgFreq * 2.5); // Faster base animation
         for (let particle of this.particles) {
             particle.x += particle.vx * speedMult;
             particle.y += particle.vy * speedMult;

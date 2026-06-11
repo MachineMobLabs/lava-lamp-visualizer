@@ -32,10 +32,13 @@ export class Bubbles {
 
   private createBubbles(max: number): void {
     const whiteColor = 'rgba(255, 255, 255, 1)';
+    const canvas = (this.p as any).canvas as HTMLCanvasElement;
+    const width = canvas?.width || 800;
+    const height = canvas?.height || 600;
 
     for (let i = 0; i < max; i++) {
-      const x = Math.random() * this.p.width;
-      const y = Math.random() * this.p.height;
+      const x = Math.random() * width;
+      const y = Math.random() * height;
       const radius = Math.floor(Math.random() * 50) + 15;
 
       this.bubbles.push(

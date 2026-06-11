@@ -14,10 +14,14 @@ export class LavaLamp {
     this.p = p;
     this.particles = [];
 
-    // Create temp canvas for metaball rendering
+    // Create temp canvas for metaball rendering - get dimensions from actual canvas
+    const canvas = (p as any).canvas as HTMLCanvasElement;
+    const width = canvas?.width || 800;
+    const height = canvas?.height || 600;
+
     this.tempCanvas = document.createElement('canvas');
-    this.tempCanvas.width = p.width;
-    this.tempCanvas.height = p.height;
+    this.tempCanvas.width = width;
+    this.tempCanvas.height = height;
     this.tempCtx = this.tempCanvas.getContext('2d')!;
 
     // Initialize 50 particles with random velocities (slowed down)
@@ -109,6 +113,11 @@ export class LavaLamp {
   }
 
   private metaballize(): void {
+    // Safety check: ensure canvas has valid dimensions
+    if (this.tempCanvas.width === 0 || this.tempCanvas.height === 0) {
+      return;
+    }
+
     const imageData = this.tempCtx.getImageData(
       0,
       0,
