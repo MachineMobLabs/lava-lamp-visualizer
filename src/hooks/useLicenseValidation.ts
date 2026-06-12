@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 
 interface LicenseData {
-  email: string;
   key: string;
   validatedAt: string;
 }
@@ -10,8 +9,7 @@ interface UseLicenseValidationReturn {
   isValid: boolean;
   isLoading: boolean;
   error: string | null;
-  email: string;
-  validateLicense: (email: string, key: string) => Promise<boolean>;
+  validateLicense: (key: string) => Promise<boolean>;
   clearLicense: () => void;
 }
 
@@ -21,7 +19,6 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
   const [isValid, setIsValid] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
 
   // Check localStorage on mount
   useEffect(() => {
@@ -29,7 +26,6 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const licenseData: LicenseData = JSON.parse(stored);
-        setEmail(licenseData.email);
         setIsValid(true);
         setError(null);
       }
@@ -42,7 +38,7 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
     }
   }, []);
 
-  const validateLicense = async (inputEmail: string, key: string): Promise<boolean> => {
+  const validateLicense = async (key: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
@@ -54,8 +50,7 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: inputEmail.toLowerCase(),
-          key: key.trim(),
+          license_key: key.trim(),
         }),
       });
 
@@ -64,14 +59,12 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
       if (data.valid) {
         // Store license data
         const licenseData: LicenseData = {
-          email: inputEmail.toLowerCase(),
           key: key.trim(),
           validatedAt: new Date().toISOString(),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(licenseData));
 
         setIsValid(true);
-        setEmail(inputEmail.toLowerCase());
         setIsLoading(false);
         return true;
       } else {
@@ -90,7 +83,6 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
   const clearLicense = () => {
     localStorage.removeItem(STORAGE_KEY);
     setIsValid(false);
-    setEmail('');
     setError(null);
   };
 
@@ -98,7 +90,6 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
     isValid,
     isLoading,
     error,
-    email,
     validateLicense,
     clearLicense,
   };
