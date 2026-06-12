@@ -25,7 +25,7 @@ export function useLicenseValidation(): UseLicenseValidationReturn {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const licenseData: LicenseData = JSON.parse(stored);
+        JSON.parse(stored);
         setIsValid(true);
         setError(null);
       }
